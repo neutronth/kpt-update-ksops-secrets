@@ -1,0 +1,75 @@
+#!/bin/sh
+
+set -e
+
+mkdir -p ./generated
+
+run() {
+  name="$1"
+
+  echo "+------"
+  echo "| Test $name ..."
+  echo "+------"
+
+  echo "+ Kpt function execute:"
+  kpt fn eval \
+    --exec /usr/local/bin/kpt-update-ksops-secrets \
+    --fn-config ./update-ksops-secrets.yaml
+
+  echo "+ Generated source package tree:"
+  kpt pkg tree
+
+  echo "+ Describe files contents:"
+  find . -type f > /tmp/.files
+  while read -r file; do
+    printf "# %s\n" "$file"
+    cat "$file"
+    echo "---"
+  done < /tmp/.files
+
+  echo "+ Kustomize manifests build:"
+  kustomize build --enable-alpha-plugins . | tee /tmp/.kustomize-build.output
+
+  cat <<EOF > /tmp/.kustomize-build.expected
+apiVersion: v1
+data:
+  UPPER_CASE: dXBwZXJfY2FzZQ==
+  config.txt: Y29uZmlnLnR4dAo=
+  test: dGVzdA==
+  test2: dGVzdDI=
+kind: Secret
+metadata:
+  annotations:
+    kustomize.config.k8s.io/behavior: merge
+  name: test-update-ksops-secrets
+type: Opaque
+EOF
+
+  check=$(diff /tmp/.kustomize-build.output /tmp/.kustomize-build.expected)
+  if [ -z "$check" ]; then
+    echo "+ Build OK"
+  else
+    echo "+ Build Failed"
+    exit 1
+  fi
+}
+
+##
+# Main
+##
+
+# Passing
+# + Function Config
+#   + update-ksops-secrets.yaml
+# + Unencrypted secrets
+#   + unencrypted-secrets.yaml
+#   + unencrypted-secrets-config-txt.yaml
+run "full generation"
+
+# Drop unencrypted secret to simulate partial update
+rm -f unencrypted-secrets-config-txt.yaml
+run "partial generation"
+
+# Drop all remaining unencrypted secret
+rm -f unencrypted-secrets.yaml
+run "no updated generation"
