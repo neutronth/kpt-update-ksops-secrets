@@ -1,0 +1,25 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  ci:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - uses: earthly/actions/setup-earthly@v1
+        with:
+          version: v0.6.13
+
+      - name: run integration test
+        run: earthly --ci --verbose --allow-privileged +integration-image-test
