@@ -250,7 +250,7 @@ recipients:
 apiVersion: fn.kpt.dev/v1alpha1
 kind: UpdateKSopsSecrets
 metadata:
-  name: test-multiple-secrets-references
+  name: test-other-secret-type
 secret:
   type: kubernetes.io/dockerconfigjson
   references:
@@ -265,7 +265,7 @@ recipients:
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
-					Name: "test-multiple-secrets-references",
+					Name: "test-other-secret-type",
 				},
 				Secret: UpdateKSopsSecretSpec{
 					Type:       "kubernetes.io/dockerconfigjson",
