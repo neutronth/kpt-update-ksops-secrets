@@ -21,6 +21,13 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 	var newNodes []*yaml.RNode
 	var results []*framework.Result
 
+	preloadResult, err := preloadGPGKeys(uksConfig.Recipients...)
+	results = append(results, preloadResult)
+
+	if err != nil {
+		return newNodes, results, err
+	}
+
 	for _, key := range uksConfig.GetSecretItems() {
 		value, b64encoded, err := secretRef.Get(key)
 		if err != nil {
@@ -102,6 +109,36 @@ data:
 	}
 
 	return enc, nil
+}
+
+func preloadGPGKeys(recipients ...config.UpdateKSopsRecipient) (result *framework.Result, err error) {
+	var gpgRecipients []string
+
+	for _, r := range recipients {
+		if r.Type == "pgp" {
+			gpgRecipients = append(gpgRecipients, r.Recipient)
+		}
+	}
+
+	if len(gpgRecipients) > 0 {
+		gpg := exec.NewGPGKeys()
+		output, err := gpg.ReceiveKeys(gpgRecipients...)
+
+		if err != nil {
+			result = &framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Error,
+			}
+			return result, err
+		}
+
+		result = &framework.Result{
+			Message:  output,
+			Severity: framework.Info,
+		}
+	}
+
+	return result, nil
 }
 
 func encodeValue(value string) (enc string) {

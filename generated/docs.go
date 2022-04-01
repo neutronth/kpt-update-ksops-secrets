@@ -81,7 +81,7 @@ recipients:
 var KptUpdateKsopsSecretsExamples = `
 Generate kustomization manifests with encrypted files:
 
-Let's start with the input resource in a package, see the [Note](#note) for how to prepare an ` + "`" + `unencrypted-secrets` + "`" + ` resource file
+Let's start with the input resource in a package, see the [Note](#create-unencrypted-secrets) for how to prepare an ` + "`" + `unencrypted-secrets` + "`" + ` resource file
 
   # unencrypted-secrets.yaml
   apiVersion: v1
@@ -142,6 +142,8 @@ Alternatively, invoke function directly without the ` + "`" + `Kptfile` + "`" + 
   $ kpt fn eval \
       --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.1 \
       --fn-config=update-ksops-secrets.yaml
+
+If you encountered the error with the PGP/GPG recipients encryption, see the [Note](#gpg-receive-keys-requires-network-to-work-properly) to understand the limitation and working solution.
 
 The above command will add files to your directory, which you can view
 

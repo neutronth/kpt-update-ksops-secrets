@@ -85,6 +85,22 @@ image:
   COPY +build/kpt-update-ksops-secrets /usr/local/bin/kpt-update-ksops-secrets
   COPY +build-sops/sops /usr/local/bin/sops
 
+  ARG DEBIAN_FRONTEND=noninteractive
+  RUN apt update --yes \
+    && apt install --yes \
+      ca-certificates \
+      gnupg \
+    && apt clean \
+    && rm -rf /var/lib/apt/lists/*
+
+  # The Kpt invokes function with user `nobody`
+  # Prepare GPG home directory for following setting
+  #   HOME=/nonexistent
+  #   GNUPGHOME=~/.gnupg
+  RUN mkdir /nonexistent \
+    && chown nobody. /nonexistent \
+    && su - nobody -s /bin/bash -c "gpg --list-keys"
+
   ENTRYPOINT ["kpt-update-ksops-secrets"]
 
   SAVE IMAGE --push ghcr.io/neutronth/kpt-update-ksops-secrets:${IMAGE_TAG}
@@ -123,7 +139,9 @@ integration-image-test:
 
   WITH DOCKER --load=ghcr.io/neutronth/kpt-update-ksops-secrets:latest=+image
     RUN --no-cache \
-      kpt fn render \
+      kpt fn eval --image=ghcr.io/neutronth/kpt-update-ksops-secrets:latest \
+        --fn-config=update-ksops-secrets.yaml \
+        --network \
       && kpt pkg tree \
       && kustomize build --enable-alpha-plugins .
   END

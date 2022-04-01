@@ -27,6 +27,10 @@ func uksConfigEncryptedSimple() *config.UpdateKSopsSecrets {
 				Type:      "age",
 				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
 			},
+			{
+				Type:      "pgp",
+				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
+			},
 		},
 	}
 }
@@ -78,14 +82,20 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 			},
 		}
 
-		recipient := config.UpdateKSopsRecipient{
-			Type:      "age",
-			Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+		recipients := []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
+			},
 		}
 
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
-				output, err := NewSecretEncryptedFileNode(tc.SecretName, tc.Key, tc.Value, tc.B64Encoded, recipient)
+				output, err := NewSecretEncryptedFileNode(tc.SecretName, tc.Key, tc.Value, tc.B64Encoded, recipients...)
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
 				}

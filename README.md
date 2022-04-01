@@ -92,7 +92,7 @@ The metadata for describing the generated `Secret` resource
 
 #### Generate kustomization manifests with encrypted files
 
-Let's start with the input resource in a package, see the [Note](#note) for how to prepare an `unencrypted-secrets` resource file
+Let's start with the input resource in a package, see the [Note](#create-unencrypted-secrets) for how to prepare an `unencrypted-secrets` resource file
 
 ```yaml
 # unencrypted-secrets.yaml
@@ -166,6 +166,8 @@ $ kpt fn eval \
     --fn-config=update-ksops-secrets.yaml
 ```
 
+If you encountered the error with the PGP/GPG recipients encryption, see the [Note](#gpg-receive-keys-requires-network-to-work-properly) to understand the limitation and working solution.
+
 The above command will add files to your directory, which you can view
 
 ```shell
@@ -211,6 +213,8 @@ type: Opaque
 
 ### Note
 
+#### Create unencrypted secrets
+
 We could manually create an `unencrypted secrets` file with your favorite text editor.
 
 Or alternatively, create with `kubectl` as following command
@@ -229,4 +233,19 @@ kept in local storage. Make sure to add the `.gitignore` for those files exclusi
 ```sh
 # .gitignore
 unencrypted-*
+```
+
+#### GPG receive-keys requires network to work properly
+
+The limitation of Kpt for security reason, the running container network is not allowed by default. The user should explicitly instruct the Kpt to enable network.
+
+There is no options to enable network within `render` function as described above. Only the alternative command works with additional parameter `--network`
+
+Hence, if the encrypted files recipients include the PGP/GPG fingerprints, the `kpt-update-ksops-secrets` requires network to work properly as following command,
+
+```shell
+$ kpt fn eval \
+    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.1 \
+    --fn-config=update-ksops-secrets.yaml \
+    --network
 ```
