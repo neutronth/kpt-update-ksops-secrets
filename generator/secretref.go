@@ -13,6 +13,7 @@ import (
 
 type SecretReference interface {
 	Get(key string) (value string, b64encoded bool, err error)
+	GetExact(name, key string) (value string, b64encoded bool, err error)
 }
 
 type secretReference struct {
@@ -27,6 +28,18 @@ func sliceContainsString(slice []string, s string) bool {
 	}
 
 	return false
+}
+
+func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []string) {
+	list = append(list, uksConfig.Secret.References...)
+
+	for _, r := range uksConfig.Recipients {
+		if r.Type == "pgp" && r.PublicKeySecretReference.Name != "" {
+			list = append(list, r.PublicKeySecretReference.Name)
+		}
+	}
+
+	return list
 }
 
 func getSecretRefNodes(items []*yaml.RNode, secretrefs []string) []*yaml.RNode {
@@ -49,15 +62,18 @@ func newSecretReference(items []*yaml.RNode,
 	uksConfig *config.UpdateKSopsSecrets) SecretReference {
 
 	return &secretReference{
-		secretRefNodes: getSecretRefNodes(items, uksConfig.Secret.References),
+		secretRefNodes: getSecretRefNodes(items, listSecretRefsFromConfig(uksConfig)),
 	}
 }
-
 func (sr *secretReference) Get(key string) (value string, b64encoded bool, err error) {
-	if field := sr.lookup(key, "dataString"); field != nil {
+	return sr.GetExact("", key)
+}
+
+func (sr *secretReference) GetExact(name, key string) (value string, b64encoded bool, err error) {
+	if field := sr.lookup(name, key, "dataString"); field != nil {
 		value = yaml.GetValue(field.Value)
 		b64encoded = false
-	} else if field := sr.lookup(key, "data"); field != nil {
+	} else if field := sr.lookup(name, key, "data"); field != nil {
 		value = yaml.GetValue(field.Value)
 		b64encoded = true
 	} else {
@@ -67,8 +83,12 @@ func (sr *secretReference) Get(key string) (value string, b64encoded bool, err e
 	return
 }
 
-func (sr *secretReference) lookup(key, dataField string) (mapnode *yaml.MapNode) {
+func (sr *secretReference) lookup(name, key, dataField string) (mapnode *yaml.MapNode) {
 	for _, rn := range sr.secretRefNodes {
+		if name != "" && rn.GetName() != name {
+			continue
+		}
+
 		n, err := rn.Pipe(yaml.Lookup(dataField))
 		if err != nil {
 			return nil

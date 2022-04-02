@@ -24,9 +24,16 @@ type UpdateKSopsSecretSpec struct {
 	Items      []string `json:"items" yaml:"items"`
 }
 
+type UpdateKSopsGPGPublicKeyReference struct {
+	Name string `json:"name" yaml:"name"`
+	Key  string `json:"key" yaml:"key"`
+}
+
 type UpdateKSopsRecipient struct {
 	Type      string `json:"type" yaml:"type"`
 	Recipient string `json:"recipient" yaml:"recipient"`
+
+	PublicKeySecretReference UpdateKSopsGPGPublicKeyReference `json:"publicKeySecretReference,omitempty" yaml:"publicKeySecretReference,omitempty"`
 }
 
 type UpdateKSopsSecrets struct {

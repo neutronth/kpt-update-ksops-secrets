@@ -36,6 +36,9 @@ secret:
 recipients:
   - type: string
     recipient: string
+    publicKeySecretReference:
+      name: string
+      key: string
 ```
 
 #### apiVersion
@@ -71,10 +74,18 @@ The metadata for describing the generated `Secret` resource
 
 #### recipients
 
-|       Field | Description                                                        | Example                                                                                                         |
-| ----------: | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-|      `type` | The type of the recipient that supported by SOPS, eg. `age`, `pgp` | `age`                                                                                                           |
-| `recipient` | The recipient id<br/>-`age`: public key<br/>-`pgp`: fingerprint id | `age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa`<br/>`F532DA10E563EE84440977A19D0470BDA6CDC457` |
+|                                                   Field | Description                                                                                     | Example                                                                                                         |
+| ------------------------------------------------------: | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+|                                                  `type` | The type of the recipient that supported by SOPS, eg. `age`, `pgp`                              | `age`                                                                                                           |
+|                                             `recipient` | The recipient id<br/>-`age`: public key<br/>-`pgp`: fingerprint id                              | `age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa`<br/>`F532DA10E563EE84440977A19D0470BDA6CDC457` |
+| [`publicKeySecretReference`](#publickeysecretreference) | Pass the PGP/GPG public key data with a secret reference, ignored for all other types but `pgp` |                                                                                                                 |
+
+#### publicKeySecretReference
+
+|  Field | Description                                                | Example                                        |
+| -----: | ---------------------------------------------------------- | ---------------------------------------------- |
+| `name` | The secret name contains PGP/GPG public keys data          | `gpg-publickeys`                               |
+|  `key` | The secret key contains a specific PGP/GPG public key data | `380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg` |
 
 `update-ksops-secrets` function performs the following steps when invoked:
 

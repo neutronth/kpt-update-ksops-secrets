@@ -126,6 +126,7 @@ integration-base:
   COPY example/update-ksops-secrets.yaml ./
   COPY example/unencrypted-secrets.yaml ./
   COPY example/unencrypted-secrets-config-txt.yaml ./
+  COPY example/gpg-publickeys.yaml ./
   COPY example/age.key.txt ${SOPS_AGE_KEYS_DIR}/keys.txt
   COPY scripts/integration-test /usr/local/bin/integration-test
 
@@ -142,6 +143,7 @@ integration-image-test:
       kpt fn eval --image=ghcr.io/neutronth/kpt-update-ksops-secrets:latest \
         --fn-config=update-ksops-secrets.yaml \
         --network \
+        --truncate-output=false \
       && kpt pkg tree \
       && kustomize build --enable-alpha-plugins .
   END
