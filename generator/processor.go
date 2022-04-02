@@ -26,30 +26,32 @@ func (p *Processor) Process(resourceList *framework.ResourceList) error {
 
 	gen := &KSopsGenerator{}
 	uksConfig := &p.uks
-	baseSecrets, err := gen.GenerateBaseSecrets(resourceList.Items, uksConfig)
-	if err != nil {
-		return errorHandler(resourceList, err)
+	baseSecrets, results := gen.GenerateBaseSecrets(resourceList.Items, uksConfig)
+	resourceList.Results = append(resourceList.Results, results...)
+	if results.ExitCode() == 1 {
+		return resourceList.Results
 	}
 	setFilename(baseSecrets, ResultFileBaseSecrets)
 
-	kustomization, err := gen.GenerateKustomization(resourceList.Items)
-	if err != nil {
-		return errorHandler(resourceList, err)
+	kustomization, results := gen.GenerateKustomization(resourceList.Items)
+	resourceList.Results = append(resourceList.Results, results...)
+	if results.ExitCode() == 1 {
+		return resourceList.Results
 	}
 	setFilename(kustomization, ResultFileKustomization)
 
-	ksopsGenerator, err := gen.GenerateKSopsGenerator(resourceList.Items, uksConfig)
-	if err != nil {
-		return errorHandler(resourceList, err)
+	ksopsGenerator, results := gen.GenerateKSopsGenerator(resourceList.Items, uksConfig)
+	resourceList.Results = append(resourceList.Results, results...)
+	if results.ExitCode() == 1 {
+		return resourceList.Results
 	}
 	setFilename(ksopsGenerator, ResultFileKSopsGenerator)
 
 	secretRef := newSecretReference(resourceList.Items, uksConfig)
-	secretEncryptedFiles, results, err :=
-		gen.GenerateSecretEncryptedFiles(resourceList.Items, uksConfig, secretRef)
+	secretEncryptedFiles, results := gen.GenerateSecretEncryptedFiles(
+		resourceList.Items, uksConfig, secretRef)
 	resourceList.Results = append(resourceList.Results, results...)
-
-	if err != nil {
+	if results.ExitCode() == 1 {
 		return resourceList.Results
 	}
 
