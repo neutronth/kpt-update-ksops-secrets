@@ -181,9 +181,9 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 		uksConfig := uksConfigEncryptedSimple()
 		gen := KSopsGenerator{}
 		secretRef := &mockSecretReference{}
-		nodes, _, err := gen.GenerateSecretEncryptedFiles([]*yaml.RNode{}, uksConfig, secretRef)
-		if err != nil {
-			t.Fatalf("unexpected error %v", err)
+		nodes, results := gen.GenerateSecretEncryptedFiles([]*yaml.RNode{}, uksConfig, secretRef)
+		if results.ExitCode() != 0 {
+			t.Fatalf("unexpected error:\n %s", results.Error())
 		}
 
 		for _, node := range nodes {

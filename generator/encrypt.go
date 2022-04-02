@@ -17,12 +17,11 @@ import (
 func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 	uksConfig *config.UpdateKSopsSecrets,
 	secretRef SecretReference,
-) (newNodes []*yaml.RNode, results framework.Results, err error) {
+) (newNodes []*yaml.RNode, results framework.Results) {
 	preloadResults := preloadGPGKeys(secretRef, uksConfig.Recipients...)
 	results = append(results, preloadResults...)
 	if preloadResults.ExitCode() == 1 {
-		err = preloadResults
-		return
+		return nil, results
 	}
 
 	for _, key := range uksConfig.GetSecretItems() {
@@ -49,15 +48,18 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 			})
 		}
 
-		setFilename([]*yaml.RNode{encNode},
-			fmt.Sprintf("%s.%s.enc.yaml", ResultFileEncryptedBase,
-				normalizedKeyName(key),
-			),
-		)
+		filename := fmt.Sprintf("%s.%s.enc.yaml", ResultFileEncryptedBase,
+			normalizedKeyName(key))
+		setFilename([]*yaml.RNode{encNode}, filename)
 		newNodes = append(newNodes, encNode)
+		results = append(results, &framework.Result{
+			Message: fmt.Sprintf("Secret key '%s' => %s encrypted",
+				key, filename),
+			Severity: framework.Info,
+		})
 	}
 
-	return newNodes, results, nil
+	return newNodes, results
 }
 
 func NewSecretEncryptedFileNode(secretName, key, value string,

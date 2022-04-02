@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
+	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
 
@@ -20,7 +21,7 @@ type KSopsGenerator struct{}
 
 func (g *KSopsGenerator) GenerateBaseSecrets(nodes []*yaml.RNode,
 	uksConfig *config.UpdateKSopsSecrets,
-) ([]*yaml.RNode, error) {
+) (newNodes []*yaml.RNode, results framework.Results) {
 	node, err := NewBaseSecretsNode(
 		uksConfig.GetName(),
 		uksConfig.GetType(),
@@ -28,39 +29,63 @@ func (g *KSopsGenerator) GenerateBaseSecrets(nodes []*yaml.RNode,
 		uksConfig.GetLabels(),
 	)
 	if err != nil {
-		return nil, err
+		results = append(results, &framework.Result{
+			Message: fmt.Sprintf("Base secret '%s' generation error, %s",
+				uksConfig.GetName(), err.Error()),
+			Severity: framework.Error,
+		})
+		return nil, results
 	}
-	var newNodes []*yaml.RNode
-	newNodes = append(newNodes, node)
 
-	return newNodes, nil
+	newNodes = append(newNodes, node)
+	results = append(results, &framework.Result{
+		Message: fmt.Sprintf("Base secret '%s' generated",
+			uksConfig.GetName()),
+		Severity: framework.Info,
+	})
+
+	return newNodes, results
 }
 
-func (g *KSopsGenerator) GenerateKustomization(nodes []*yaml.RNode) (
-	[]*yaml.RNode, error) {
+func (g *KSopsGenerator) GenerateKustomization(nodes []*yaml.RNode) (newNodes []*yaml.RNode, results framework.Results) {
 	node, err := NewKustomizationNode()
 	if err != nil {
-		return nil, err
+		results = append(results, &framework.Result{
+			Message:  fmt.Sprintf("Kustomization generation error, %s", err.Error()),
+			Severity: framework.Error,
+		})
+		return nil, results
 	}
-	var newNodes []*yaml.RNode
-	newNodes = append(newNodes, node)
 
-	return newNodes, nil
+	newNodes = append(newNodes, node)
+	results = append(results, &framework.Result{
+		Message:  "Kustomization generated",
+		Severity: framework.Info,
+	})
+
+	return newNodes, results
 }
 
-func (g *KSopsGenerator) GenerateKSopsGenerator(nodes []*yaml.RNode, uksConfig *config.UpdateKSopsSecrets) (
-	[]*yaml.RNode, error) {
-	var newNodes []*yaml.RNode
-
+func (g *KSopsGenerator) GenerateKSopsGenerator(nodes []*yaml.RNode, uksConfig *config.UpdateKSopsSecrets) (newNodes []*yaml.RNode, results framework.Results) {
 	for _, key := range uksConfig.GetSecretItems() {
 		node, err := NewKSopsGeneratorNode(uksConfig.GetName(), key)
 		if err != nil {
-			return nil, err
+			results = append(results, &framework.Result{
+				Message:  fmt.Sprintf("KSOPS Generator manifest generation error, %s", err.Error()),
+				Severity: framework.Error,
+			})
+
+			return nil, results
 		}
 		newNodes = append(newNodes, node)
+
+		results = append(results, &framework.Result{
+			Message:  fmt.Sprintf("KSOPS Generator key '%s' generated", key),
+			Severity: framework.Info,
+		})
 	}
 
-	return newNodes, nil
+	return newNodes, results
 }
 
 func NewBaseSecretsNode(name, secretType string, annotations, labels map[string]string) (*yaml.RNode, error) {

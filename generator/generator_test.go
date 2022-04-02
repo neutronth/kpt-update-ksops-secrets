@@ -188,9 +188,9 @@ type: kubernetes.io/dockerconfigjson
 	for _, tc := range testCases {
 		t.Run(tc.Name, func(t *testing.T) {
 			gen := KSopsGenerator{}
-			outputs, err := gen.GenerateBaseSecrets([]*yaml.RNode{}, tc.Config)
-			if err != nil {
-				t.Fatalf("unexpected error %v", err)
+			outputs, results := gen.GenerateBaseSecrets([]*yaml.RNode{}, tc.Config)
+			if results.ExitCode() != 0 {
+				t.Fatalf("unexpected error:\n %s", results.Error())
 			}
 			if len(outputs) != 1 {
 				t.Fatalf("expect to generate 1 rnode, got %v", len(outputs))
@@ -214,9 +214,9 @@ resources:
 `
 
 	gen := KSopsGenerator{}
-	outputs, err := gen.GenerateKustomization([]*yaml.RNode{})
-	if err != nil {
-		t.Fatalf("unexpected error %v", err)
+	outputs, results := gen.GenerateKustomization([]*yaml.RNode{})
+	if results.ExitCode() != 0 {
+		t.Fatalf("unexpected error:\n %s", results.Error())
 	}
 	if len(outputs) != 1 {
 		t.Fatalf("expect to generate 1 rnode, got %v", len(outputs))
@@ -255,9 +255,9 @@ metadata:
 	}
 
 	gen := KSopsGenerator{}
-	outputs, err := gen.GenerateKSopsGenerator([]*yaml.RNode{}, uksConfig)
-	if err != nil {
-		t.Fatalf("unexpected error %v", err)
+	outputs, results := gen.GenerateKSopsGenerator([]*yaml.RNode{}, uksConfig)
+	if results.ExitCode() != 0 {
+		t.Fatalf("unexpected error:\n %s", results.Error())
 	}
 	if len(outputs) != 3 {
 		t.Fatalf("expect to generate 3 rnode, got %v", len(outputs))
