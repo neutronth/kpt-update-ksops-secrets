@@ -35,7 +35,7 @@ secret:
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -77,7 +77,7 @@ secret:
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -123,7 +123,7 @@ secret:
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -172,7 +172,7 @@ secret:
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -221,7 +221,7 @@ secret:
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -256,11 +256,11 @@ secret:
   references:
   - unencrypted-secrets
   items:
-  - .dockerconfigjson 
+  - .dockerconfigjson
 recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
-- type: pgp 
+- type: pgp
   recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
@@ -284,7 +284,53 @@ recipients:
 				},
 			},
 		},
-
+		{
+			TestName: "PGP/GPG public key preload",
+			FunctionConfig: `
+apiVersion: fn.kpt.dev/v1alpha1
+kind: UpdateKSopsSecrets
+metadata:
+  name: test-pgp-gpg-public-key-preload
+secret:
+  type: kubernetes.io/dockerconfigjson
+  references:
+  - unencrypted-secrets
+  items:
+  - .dockerconfigjson
+recipients:
+- type: age
+  recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
+- type: pgp
+  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  publicKeySecretReference:
+    name: gpg-publickeys
+    key: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg
+`,
+			ExpectedConfig: UpdateKSopsSecrets{
+				ObjectMeta: metav1.ObjectMeta{
+					Name: "test-pgp-gpg-public-key-preload",
+				},
+				Secret: UpdateKSopsSecretSpec{
+					Type:       "kubernetes.io/dockerconfigjson",
+					References: []string{"unencrypted-secrets"},
+					Items:      []string{".dockerconfigjson"},
+				},
+				Recipients: []UpdateKSopsRecipient{
+					{
+						Type:      "age",
+						Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+					},
+					{
+						Type:      "pgp",
+						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						PublicKeySecretReference: UpdateKSopsGPGPublicKeyReference{
+							Name: "gpg-publickeys",
+							Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+						},
+					},
+				},
+			},
+		},
 		{
 			TestName: "invalid functionConfig kind",
 			FunctionConfig: `

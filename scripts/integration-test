@@ -14,7 +14,8 @@ run() {
   echo "+ Kpt function execute:"
   kpt fn eval \
     --exec /usr/local/bin/kpt-update-ksops-secrets \
-    --fn-config ./update-ksops-secrets.yaml
+    --fn-config ./update-ksops-secrets.yaml \
+    --truncate-output=false
 
   echo "+ Generated source package tree:"
   kpt pkg tree

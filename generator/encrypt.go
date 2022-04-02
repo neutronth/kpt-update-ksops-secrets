@@ -17,15 +17,12 @@ import (
 func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 	uksConfig *config.UpdateKSopsSecrets,
 	secretRef SecretReference,
-) ([]*yaml.RNode, []*framework.Result, error) {
-	var newNodes []*yaml.RNode
-	var results []*framework.Result
-
-	preloadResult, err := preloadGPGKeys(uksConfig.Recipients...)
-	results = append(results, preloadResult)
-
-	if err != nil {
-		return newNodes, results, err
+) (newNodes []*yaml.RNode, results framework.Results, err error) {
+	preloadResults := preloadGPGKeys(secretRef, uksConfig.Recipients...)
+	results = append(results, preloadResults...)
+	if preloadResults.ExitCode() == 1 {
+		err = preloadResults
+		return
 	}
 
 	for _, key := range uksConfig.GetSecretItems() {
@@ -111,36 +108,122 @@ data:
 	return enc, nil
 }
 
-func preloadGPGKeys(recipients ...config.UpdateKSopsRecipient) (result *framework.Result, err error) {
-	var gpgRecipients []string
+func selectGPGRecipientsWithPublicKey(gpgRecipients []config.UpdateKSopsRecipient) (selected []config.UpdateKSopsRecipient) {
+	for _, gr := range gpgRecipients {
+		sr := gr.PublicKeySecretReference
+		if sr.Name != "" && sr.Key != "" {
+			selected = append(selected, gr)
+		}
+	}
 
+	return selected
+}
+
+func selectGPGRecipientsWithoutPublicKey(gpgRecipients []config.UpdateKSopsRecipient) (selected []config.UpdateKSopsRecipient) {
+	for _, gr := range gpgRecipients {
+		sr := gr.PublicKeySecretReference
+		if sr.Name == "" || sr.Key == "" {
+			selected = append(selected, gr)
+		}
+	}
+
+	return selected
+}
+
+func getGPGRecipients(recipients ...config.UpdateKSopsRecipient) (gpgRecipients []config.UpdateKSopsRecipient) {
 	for _, r := range recipients {
 		if r.Type == "pgp" {
-			gpgRecipients = append(gpgRecipients, r.Recipient)
+			gpgRecipients = append(gpgRecipients, r)
 		}
 	}
 
-	if len(gpgRecipients) > 0 {
-		gpg := exec.NewGPGKeys()
-		output, err := gpg.ReceiveKeys(gpgRecipients...)
+	return
+}
+
+func getGPGPublicKeysData(secretRef SecretReference, name, key string) (data string, err error) {
+	value, b64encoded, err := secretRef.GetExact(name, key)
+
+	if err != nil {
+		return "", err
+	}
+
+	data = value
+	if b64encoded {
+		decoded, err := decodeValue(data)
 
 		if err != nil {
-			result = &framework.Result{
-				Message:  err.Error(),
-				Severity: framework.Error,
-			}
-			return result, err
+			return "", err
 		}
 
-		result = &framework.Result{
-			Message:  output,
-			Severity: framework.Info,
-		}
+		data = string(decoded)
 	}
 
-	return result, nil
+	return data, nil
+}
+
+func importGPGKeys(secretRef SecretReference, recipients ...config.UpdateKSopsRecipient) (results []*framework.Result) {
+	gpg := exec.NewGPGKeys()
+
+	for _, gr := range selectGPGRecipientsWithPublicKey(getGPGRecipients(recipients...)) {
+		sr := gr.PublicKeySecretReference
+		data, err := getGPGPublicKeysData(secretRef, sr.Name, sr.Key)
+		if err != nil {
+			results = append(results, &framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Warning,
+			})
+			continue
+		}
+
+		if _, err = gpg.ImportKey(data); err != nil {
+			results = append(results, &framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Warning,
+			})
+			continue
+		}
+
+		results = append(results, &framework.Result{
+			Message:  fmt.Sprintf("GPG public key %s imported", gr.Recipient),
+			Severity: framework.Info,
+		})
+	}
+
+	return
+}
+
+func receiveGPGKeys(recipients ...config.UpdateKSopsRecipient) (results []*framework.Result) {
+	gpg := exec.NewGPGKeys()
+	for _, gr := range selectGPGRecipientsWithoutPublicKey(getGPGRecipients(recipients...)) {
+		if _, err := gpg.ReceiveKeys(gr.Recipient); err != nil {
+			results = append(results, &framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Error,
+			})
+			return
+		}
+
+		results = append(results, &framework.Result{
+			Message: fmt.Sprintf("GPG public key %s received from key server",
+				gr.Recipient),
+			Severity: framework.Info,
+		})
+	}
+
+	return
+}
+
+func preloadGPGKeys(secretRef SecretReference, recipients ...config.UpdateKSopsRecipient) framework.Results {
+	importResults := importGPGKeys(secretRef, recipients...)
+	receiveKeysResults := receiveGPGKeys(recipients...)
+
+	return append(importResults, receiveKeysResults...)
 }
 
 func encodeValue(value string) (enc string) {
 	return base64.StdEncoding.EncodeToString([]byte(value))
+}
+
+func decodeValue(value string) (enc []byte, err error) {
+	return base64.StdEncoding.DecodeString(value)
 }
