@@ -184,7 +184,7 @@ func importGPGKeys(secretRef SecretReference, recipients ...config.UpdateKSopsRe
 		}
 
 		results = append(results, &framework.Result{
-			Message:  fmt.Sprintf("GPG public key %s imported", gr.Recipient),
+			Message:  fmt.Sprintf("PGP/GPG public key %s imported", gr.Recipient),
 			Severity: framework.Info,
 		})
 	}
@@ -204,7 +204,7 @@ func receiveGPGKeys(recipients ...config.UpdateKSopsRecipient) (results []*frame
 		}
 
 		results = append(results, &framework.Result{
-			Message: fmt.Sprintf("GPG public key %s received from key server",
+			Message: fmt.Sprintf("PGP/GPG public key %s received from key server",
 				gr.Recipient),
 			Severity: framework.Info,
 		})
