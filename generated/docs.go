@@ -32,6 +32,9 @@ We use ` + "`" + `UpdateKSopsSecrets` + "`" + ` custom resource to configure the
   recipients:
     - type: string
       recipient: string
+      publicKeySecretReference:
+        name: string
+        key: string
 
 apiVersion:
 
@@ -66,10 +69,18 @@ secret:
 
 recipients:
 
-|       Field | Description                                                        | Example                                                                                                         |
-| ----------: | ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-|      ` + "`" + `type` + "`" + ` | The type of the recipient that supported by SOPS, eg. ` + "`" + `age` + "`" + `, ` + "`" + `pgp` + "`" + ` | ` + "`" + `age` + "`" + `                                                                                                           |
-| ` + "`" + `recipient` + "`" + ` | The recipient id<br/>-` + "`" + `age` + "`" + `: public key<br/>-` + "`" + `pgp` + "`" + `: fingerprint id | ` + "`" + `age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa` + "`" + `<br/>` + "`" + `F532DA10E563EE84440977A19D0470BDA6CDC457` + "`" + ` |
+|                                                   Field | Description                                                                                     | Example                                                                                                         |
+| ------------------------------------------------------: | ----------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+|                                                  ` + "`" + `type` + "`" + ` | The type of the recipient that supported by SOPS, eg. ` + "`" + `age` + "`" + `, ` + "`" + `pgp` + "`" + `                              | ` + "`" + `age` + "`" + `                                                                                                           |
+|                                             ` + "`" + `recipient` + "`" + ` | The recipient id<br/>-` + "`" + `age` + "`" + `: public key<br/>-` + "`" + `pgp` + "`" + `: fingerprint id                              | ` + "`" + `age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa` + "`" + `<br/>` + "`" + `F532DA10E563EE84440977A19D0470BDA6CDC457` + "`" + ` |
+| [` + "`" + `publicKeySecretReference` + "`" + `](#publickeysecretreference) | Pass the PGP/GPG public key data with a secret reference, ignored for all other types but ` + "`" + `pgp` + "`" + ` |                                                                                                                 |
+
+publicKeySecretReference:
+
+|  Field | Description                                                | Example                                        |
+| -----: | ---------------------------------------------------------- | ---------------------------------------------- |
+| ` + "`" + `name` + "`" + ` | The secret name contains PGP/GPG public keys data          | ` + "`" + `gpg-publickeys` + "`" + `                               |
+|  ` + "`" + `key` + "`" + ` | The secret key contains a specific PGP/GPG public key data | ` + "`" + `380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg` + "`" + ` |
 
 ` + "`" + `update-ksops-secrets` + "`" + ` function performs the following steps when invoked:
 
@@ -131,7 +142,7 @@ Declare the new desired values for setters in the functionConfig file.
     name: update-ksops-secrets
   pipeline:
     mutators:
-      - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.2
+      - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.3
         configPath: update-ksops-secrets.yaml
 
 Invoke the function:
@@ -141,7 +152,7 @@ Invoke the function:
 Alternatively, invoke function directly without the ` + "`" + `Kptfile` + "`" + `
 
   $ kpt fn eval \
-      --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.2 \
+      --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.3 \
       --fn-config=update-ksops-secrets.yaml
 
 If you encountered the error with the PGP/GPG recipients encryption, see the [Note](#gpg-receive-keys-requires-network-to-work-properly) to understand the limitation and working solution.
