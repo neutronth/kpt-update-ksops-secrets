@@ -159,7 +159,7 @@ metadata:
   name: update-ksops-secrets
 pipeline:
   mutators:
-    - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.3
+    - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.4
       configPath: update-ksops-secrets.yaml
 ```
 
@@ -173,7 +173,7 @@ Alternatively, invoke function directly without the `Kptfile`
 
 ```shell
 $ kpt fn eval \
-    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.3 \
+    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.4 \
     --fn-config=update-ksops-secrets.yaml
 ```
 
@@ -256,7 +256,7 @@ Hence, if the encrypted files recipients include the PGP/GPG fingerprints, the `
 
 ```shell
 $ kpt fn eval \
-    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.3 \
+    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.4 \
     --fn-config=update-ksops-secrets.yaml \
     --network
 ```
