@@ -70,7 +70,7 @@ func (sr *secretReference) Get(key string) (value string, b64encoded bool, err e
 }
 
 func (sr *secretReference) GetExact(name, key string) (value string, b64encoded bool, err error) {
-	if field := sr.lookup(name, key, "dataString"); field != nil {
+	if field := sr.lookup(name, key, "stringData"); field != nil {
 		value = yaml.GetValue(field.Value)
 		b64encoded = false
 	} else if field := sr.lookup(name, key, "data"); field != nil {

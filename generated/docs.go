@@ -100,7 +100,7 @@ Let's start with the input resource in a package, see the [Note](#create-unencry
   kind: Secret
   metadata:
     name: unencrypted-secrets
-  dataString:
+  stringData:
     test2: test2
     UPPER_CASE: upper_case
   data:
@@ -142,7 +142,7 @@ Declare the new desired values for setters in the functionConfig file.
     name: update-ksops-secrets
   pipeline:
     mutators:
-      - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.3
+      - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.4
         configPath: update-ksops-secrets.yaml
 
 Invoke the function:
@@ -152,7 +152,7 @@ Invoke the function:
 Alternatively, invoke function directly without the ` + "`" + `Kptfile` + "`" + `
 
   $ kpt fn eval \
-      --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.3 \
+      --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.4 \
       --fn-config=update-ksops-secrets.yaml
 
 If you encountered the error with the PGP/GPG recipients encryption, see the [Note](#gpg-receive-keys-requires-network-to-work-properly) to understand the limitation and working solution.
