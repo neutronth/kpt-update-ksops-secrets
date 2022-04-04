@@ -47,7 +47,7 @@ kind: Secret
 metadata:
   name: unencrypted-secrets
 type: Opaque
-dataString:
+stringData:
   test2: test2
   UPPER_CASE: upper_case
 data:
