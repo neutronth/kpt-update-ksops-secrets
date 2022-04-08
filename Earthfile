@@ -38,6 +38,7 @@ staticcheck:
   FROM +source
 
   RUN go install honnef.co/go/tools/cmd/staticcheck@latest
+  RUN go vet ./...
   RUN staticcheck ./...
 
 test:
