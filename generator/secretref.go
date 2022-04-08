@@ -77,7 +77,7 @@ func (sr *secretReference) GetExact(name, key string) (value string, b64encoded 
 		value = yaml.GetValue(field.Value)
 		b64encoded = true
 	} else {
-		err = fmt.Errorf("Secret %s was not found in the references", key)
+		err = fmt.Errorf("secret %s was not found in the references", key)
 	}
 
 	return

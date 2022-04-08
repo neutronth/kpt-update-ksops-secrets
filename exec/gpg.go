@@ -32,7 +32,7 @@ func (g *gpg) ReceiveKeys(fingerprints ...string) (output string, err error) {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return "", fmt.Errorf("GPG Error: %s\n", out)
+		return "", fmt.Errorf("the GPG Error: %s", out)
 	}
 
 	return string(out), nil
@@ -48,7 +48,7 @@ func (g *gpg) ImportKey(data string) (output string, err error) {
 	out, err := cmd.CombinedOutput()
 
 	if err != nil {
-		return "", fmt.Errorf("GPG Error: %s\n", out)
+		return "", fmt.Errorf("the GPG Error: %s", out)
 	}
 
 	return string(out), nil

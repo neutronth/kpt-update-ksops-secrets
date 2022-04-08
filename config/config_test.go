@@ -343,7 +343,7 @@ data:
   test2: test2
 `,
 			ExpectedConfig: UpdateKSopsSecrets{},
-			ExpectedError:  fmt.Errorf("The functionConfig must be a %s", fnConfigKind),
+			ExpectedError:  fmt.Errorf("the functionConfig must be a %s", fnConfigKind),
 		},
 	}
 

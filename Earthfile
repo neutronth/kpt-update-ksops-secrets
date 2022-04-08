@@ -34,8 +34,15 @@ build-sops:
 
   SAVE ARTIFACT /sops
 
-test:
+staticcheck:
   FROM +source
+
+  RUN go install honnef.co/go/tools/cmd/staticcheck@latest
+  RUN go vet ./...
+  RUN staticcheck ./...
+
+test:
+  FROM +staticcheck
   COPY +build-sops/sops /usr/local/bin/sops
 
   RUN mkdir -p /testing/generated
@@ -46,7 +53,6 @@ build:
 
   RUN go build -o kpt-update-ksops-secrets .
   SAVE ARTIFACT kpt-update-ksops-secrets
-
 
 download-tools:
   FROM debian:bullseye-slim
