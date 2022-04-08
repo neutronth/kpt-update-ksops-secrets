@@ -108,7 +108,6 @@ func setFilename(nodes []*yaml.RNode, filename string) {
 		annotations := node.GetAnnotations()
 		annotations[kioutil.PathAnnotation] = filename
 		annotations[kioutil.IndexAnnotation] = fmt.Sprintf("%d", idx)
-		annotations[kioutil.LegacyIndexAnnotation] = annotations[kioutil.IndexAnnotation]
 
 		node.SetAnnotations(annotations)
 	}
