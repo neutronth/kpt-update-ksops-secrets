@@ -54,7 +54,7 @@ func (uks *UpdateKSopsSecrets) Config(functionConfig *sdk.KubeObject) error {
 				fnConfigVersion, fnConfigKind, err)
 		}
 	default:
-		return fmt.Errorf("The functionConfig must be a %s", fnConfigKind)
+		return fmt.Errorf("the functionConfig must be a %s", fnConfigKind)
 	}
 
 	uks.ObjectMeta.Name = functionConfig.ToRNode().GetName()

@@ -41,7 +41,7 @@ func (s *sops) Encrypt(input string, recipients ...config.UpdateKSopsRecipient) 
 	cmd.Stderr = &execErr
 
 	if e := cmd.Run(); e != nil {
-		return "", fmt.Errorf("Sops encryption error: %v\n%s", e, execErr.String())
+		return "", fmt.Errorf("the Sops encryption error: %v\n%s", e, execErr.String())
 	}
 
 	return execOut.String(), nil
