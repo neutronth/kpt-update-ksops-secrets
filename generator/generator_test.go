@@ -19,7 +19,7 @@ func uksConfigSimple() *config.UpdateKSopsSecrets {
 		},
 		Secret: config.UpdateKSopsSecretSpec{
 			References: []string{"unencrypted-secrets"},
-			Items:      []string{"test", "test2", "UPPER_CASE"},
+			Items:      []string{"test", "test2", "UPPER_CASE", ".dockerconfigjson", "middle..double..dot"},
 		},
 	}
 }
@@ -233,10 +233,24 @@ func TestGenerateKSopsGenerator(t *testing.T) {
 	expected := []string{
 		`apiVersion: viaduct.ai/v1
 files:
+- generated/secrets.dockerconfigjson.enc.yaml
+kind: ksops
+metadata:
+  name: ksops-generator-test-dockerconfigjson
+`,
+		`apiVersion: viaduct.ai/v1
+files:
 - generated/secrets.upper_case.enc.yaml
 kind: ksops
 metadata:
   name: ksops-generator-test-upper_case
+`,
+		`apiVersion: viaduct.ai/v1
+files:
+- generated/secrets.middle--double--dot.enc.yaml
+kind: ksops
+metadata:
+  name: ksops-generator-test-middle--double--dot
 `,
 		`apiVersion: viaduct.ai/v1
 files:
@@ -259,8 +273,8 @@ metadata:
 	if results.ExitCode() != 0 {
 		t.Fatalf("unexpected error:\n %s", results.Error())
 	}
-	if len(outputs) != 3 {
-		t.Fatalf("expect to generate 3 rnode, got %v", len(outputs))
+	if len(outputs) != len(expected) {
+		t.Fatalf("expect to generate %d rnode, got %d", len(expected), len(outputs))
 	}
 
 	for idx := range outputs {
