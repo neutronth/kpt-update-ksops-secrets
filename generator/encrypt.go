@@ -36,6 +36,7 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 
 		encNode, err := NewSecretEncryptedFileNode(
 			uksConfig.GetName(),
+			uksConfig.GetType(),
 			key,
 			value,
 			b64encoded,
@@ -62,7 +63,7 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 	return newNodes, results
 }
 
-func NewSecretEncryptedFileNode(secretName, key, value string,
+func NewSecretEncryptedFileNode(secretName, secretType, key, value string,
 	b64encoded bool,
 	recipients ...config.UpdateKSopsRecipient,
 ) (*yaml.RNode, error) {
@@ -77,6 +78,15 @@ data:
 
 	if err := n.SetName(secretName); err != nil {
 		return nil, err
+	}
+
+	if secretType != "" {
+		n, err := n.Pipe(yaml.Lookup("type"))
+		if err != nil {
+			return nil, err
+		}
+
+		n.YNode().Value = secretType
 	}
 
 	if _, err := n.Pipe(yaml.SetAnnotation("kustomize.config.k8s.io/behavior", "merge")); err != nil {

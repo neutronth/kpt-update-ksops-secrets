@@ -129,6 +129,7 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 		testCases := []struct {
 			Name       string
 			SecretName string
+			SecretType string
 			Key        string
 			Value      string
 			B64Encoded bool
@@ -136,6 +137,7 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 			{
 				Name:       "raw value",
 				SecretName: "test",
+				SecretType: "Opaque",
 				Key:        "test",
 				Value:      "test",
 				B64Encoded: false,
@@ -143,6 +145,15 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 			{
 				Name:       "base64 encoded value",
 				SecretName: "test",
+				SecretType: "Opaque",
+				Key:        "test",
+				Value:      "dGVzdA==",
+				B64Encoded: true,
+			},
+			{
+				Name:       "other scret type",
+				SecretName: "test",
+				SecretType: "kubernetes.io/dockerconfigjson",
 				Key:        "test",
 				Value:      "dGVzdA==",
 				B64Encoded: true,
@@ -162,9 +173,20 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.Name, func(t *testing.T) {
-				output, err := NewSecretEncryptedFileNode(tc.SecretName, tc.Key, tc.Value, tc.B64Encoded, recipients...)
+				output, err := NewSecretEncryptedFileNode(tc.SecretName, tc.SecretType,
+					tc.Key, tc.Value, tc.B64Encoded, recipients...)
 				if err != nil {
 					t.Fatalf("Unexpected error: %v", err)
+				}
+
+				n, err := output.Pipe(yaml.Lookup("type"))
+				if err != nil {
+					t.Errorf("Expect encrypted secret type exist, got none")
+				}
+
+				actualSecretType := n.YNode().Value
+				if actualSecretType != tc.SecretType {
+					t.Errorf("Expect encrypted secret type %s, got %s", tc.SecretType, actualSecretType)
 				}
 
 				data := output.GetDataMap()
