@@ -160,5 +160,7 @@ files:
 }
 
 func normalizedKeyName(key string) string {
-	return strings.ToLower(key)
+	normalized := strings.ReplaceAll(key, ".", "-")
+	normalized = strings.Trim(normalized, "-")
+	return strings.ToLower(normalized)
 }
