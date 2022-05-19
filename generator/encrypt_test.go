@@ -169,6 +169,14 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 				Type:      "pgp",
 				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
 			},
+			{
+				Type:      "pgp",
+				Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
+					Name: "gpg-publickeys",
+					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+				},
+			},
 		}
 
 		for _, tc := range testCases {
@@ -195,6 +203,10 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 						t.Errorf("Expect encrypted data, got %s=%v", key, value)
 					}
 				}
+
+				if err := assertRecipients(output, recipients); err != nil {
+					t.Errorf("Expect encrypted for all recipients, got error %s", err)
+				}
 			})
 		}
 	})
@@ -215,6 +227,55 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 					t.Errorf("Expect encrypted data, got %s=%v", key, value)
 				}
 			}
+
+			if err := assertRecipients(node, uksConfig.Recipients); err != nil {
+				t.Errorf("Expect encrypted for all recipients, got error %s", err)
+			}
 		}
 	})
+}
+
+func encryptedRecipients(output *yaml.RNode) map[string]bool {
+	recipients := make(map[string]bool, 0)
+	noRecipients := map[string]bool{}
+
+	sops, err := output.GetFieldValue("sops")
+	if err != nil {
+		return noRecipients
+	}
+
+	sopsValue, ok := sops.(map[string]interface{})
+	if !ok {
+		return noRecipients
+	}
+
+	for recipientType, val := range sopsValue {
+		if sopsMetadataList, ok := val.([]interface{}); ok {
+			for _, sopsMetadata := range sopsMetadataList {
+				if data, ok := sopsMetadata.(map[string]interface{}); ok {
+					switch recipientType {
+					case "age":
+						recipients[fmt.Sprintf("%s:%s", recipientType, data["recipient"])] = true
+					case "pgp":
+						recipients[fmt.Sprintf("%s:%s", recipientType, data["fp"])] = true
+					}
+				}
+			}
+		}
+	}
+
+	return recipients
+}
+
+func assertRecipients(output *yaml.RNode, recipients []config.UpdateKSopsRecipient) error {
+	encRecipients := encryptedRecipients(output)
+
+	for _, recipient := range recipients {
+		key := fmt.Sprintf("%s:%s", recipient.Type, recipient.Recipient)
+		if ok := encRecipients[key]; !ok {
+			return fmt.Errorf("Encrypted for recipient '%s:%s' not found", recipient.Type, recipient.Recipient)
+		}
+	}
+
+	return nil
 }
