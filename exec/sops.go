@@ -48,14 +48,25 @@ func (s *sops) Encrypt(input string, recipients ...config.UpdateKSopsRecipient) 
 }
 
 func cmdRecipientsOptions(recipients ...config.UpdateKSopsRecipient) (opts []string) {
+	ageRecipients := []string{}
+	pgpRecipients := []string{}
+
 	for _, r := range recipients {
 		switch r.Type {
 		case "age":
-			opts = append(opts, fmt.Sprintf("--age=%s", r.Recipient))
+			ageRecipients = append(ageRecipients, r.Recipient)
 		case "pgp":
-			opts = append(opts, fmt.Sprintf("--pgp=%s", r.Recipient))
+			pgpRecipients = append(pgpRecipients, r.Recipient)
 		}
 	}
 
-	return
+	if len(ageRecipients) > 0 {
+		opts = append(opts, fmt.Sprintf("--age=%s", strings.Join(ageRecipients, ",")))
+	}
+
+	if len(pgpRecipients) > 0 {
+		opts = append(opts, fmt.Sprintf("--pgp=%s", strings.Join(pgpRecipients, ",")))
+	}
+
+	return opts
 }
