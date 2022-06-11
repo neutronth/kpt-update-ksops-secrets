@@ -81,12 +81,12 @@ data:
 	}
 
 	if secretType != "" {
-		n, err := n.Pipe(yaml.Lookup("type"))
+		rnType, err := n.Pipe(yaml.Lookup("type"))
 		if err != nil {
 			return nil, err
 		}
 
-		n.YNode().Value = secretType
+		rnType.YNode().Value = secretType
 	}
 
 	if _, err := n.Pipe(yaml.SetAnnotation("kustomize.config.k8s.io/behavior", "merge")); err != nil {

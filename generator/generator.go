@@ -116,12 +116,12 @@ data: {}
 	}
 
 	if secretType != "" {
-		n, err := n.Pipe(yaml.Lookup("type"))
+		rnType, err := n.Pipe(yaml.Lookup("type"))
 		if err != nil {
 			return nil, err
 		}
 
-		n.YNode().Value = secretType
+		rnType.YNode().Value = secretType
 	}
 
 	return n, nil
