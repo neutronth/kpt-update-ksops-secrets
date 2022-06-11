@@ -1,0 +1,56 @@
+#########################
+#########################
+## Golang Linter rules ##
+#########################
+#########################
+
+run:
+  go: 1.18
+
+# configure golangci-lint
+# see https://github.com/golangci/golangci-lint/blob/master/.golangci.example.yml
+issues:
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - dupl
+        - gosec
+        - goconst
+        - funlen
+        - testpackage
+        - gocognit
+        - gocyclo
+        - cyclop
+        - paralleltest
+        - maintidx
+        - errcheck
+        - lll
+
+linters:
+  disable-all: true
+  enable:
+    - deadcode
+    - errcheck
+    - gosimple
+    - govet
+    - ineffassign
+    - staticcheck
+#    - structcheck  # disabled because of go1.18. https://github.com/golangci/golangci-lint/issues/2649
+    - typecheck
+    - unused
+    - varcheck
+
+linters-settings:
+  errcheck:
+    # report about assignment of errors to blank identifier: `num, _ := strconv.Atoi(numStr)`;
+    # default is false: such cases aren't reported by default.
+    check-blank: true
+  govet:
+    # report about shadowed variables
+    check-shadowing: true
+  gocyclo:
+    # minimal code complexity to report, 30 by default
+    min-complexity: 15
+  maligned:
+    # print struct with more effective memory layout or not, false by default
+    suggest-new: true

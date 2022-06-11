@@ -19,7 +19,7 @@ jobs:
 
       - uses: earthly/actions/setup-earthly@v1
         with:
-          version: v0.6.13
+          version: v0.6.14
 
       - name: run integration test
         run: earthly --ci --verbose --allow-privileged +integration-image-test

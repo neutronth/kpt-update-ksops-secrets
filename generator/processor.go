@@ -73,12 +73,18 @@ func resourceListUpserts(resourceList *framework.ResourceList, list ...[]*yaml.R
 }
 
 func nodeUpserts(resourceList *framework.ResourceList, node *yaml.RNode) {
-	nodePath, _, _ := kioutil.GetFileAnnotations(node)
+	nodePath, _, err := kioutil.GetFileAnnotations(node)
+	if err != nil {
+		return
+	}
 
 	replaced := false
 
 	for idx, resource := range resourceList.Items {
-		resourcePath, _, _ := kioutil.GetFileAnnotations(resource)
+		resourcePath, _, err := kioutil.GetFileAnnotations(resource)
+		if err != nil {
+			return
+		}
 
 		if resourcePath == nodePath && resource.GetName() == node.GetName() {
 			replaced = true
@@ -109,6 +115,9 @@ func setFilename(nodes []*yaml.RNode, filename string) {
 		annotations[kioutil.PathAnnotation] = filename
 		annotations[kioutil.IndexAnnotation] = fmt.Sprintf("%d", idx)
 
-		node.SetAnnotations(annotations)
+		err := node.SetAnnotations(annotations)
+		if err != nil {
+			continue
+		}
 	}
 }
