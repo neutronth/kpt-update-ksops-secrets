@@ -34,15 +34,14 @@ build-sops:
 
   SAVE ARTIFACT /sops
 
-staticcheck:
+lint:
   FROM +source
 
-  RUN go install honnef.co/go/tools/cmd/staticcheck@latest
-  RUN go vet ./...
-  RUN staticcheck ./...
+  RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+  RUN golangci-lint run --verbose ./...
 
 test:
-  FROM +staticcheck
+  FROM +lint
   COPY +build-sops/sops /usr/local/bin/sops
 
   RUN mkdir -p /testing/generated
