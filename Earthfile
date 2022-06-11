@@ -1,3 +1,5 @@
+VERSION 0.6
+
 source:
   FROM golang:1.18-bullseye
   ENV CGO_ENABLED=0
