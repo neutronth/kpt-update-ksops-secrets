@@ -36,6 +36,7 @@ apiVersion: v1
 data:
   UPPER_CASE: dXBwZXJfY2FzZQ==
   config.txt: Y29uZmlnLnR4dAo=
+  same-secret-and-secret-ref-name: dGVzdA==
   test: dGVzdA==
   test2: dGVzdDI=
 kind: Secret
@@ -73,4 +74,5 @@ run "partial generation"
 
 # Drop all remaining unencrypted secret
 rm -f unencrypted-secrets.yaml
+rm -f test-update-ksops-secrets.yaml
 run "no updated generation"

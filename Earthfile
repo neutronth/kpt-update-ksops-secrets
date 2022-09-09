@@ -133,6 +133,7 @@ integration-base:
   COPY example/update-ksops-secrets.yaml ./
   COPY example/unencrypted-secrets.yaml ./
   COPY example/unencrypted-secrets-config-txt.yaml ./
+  COPY example/test-update-ksops-secrets.yaml ./
   COPY example/gpg-publickeys.yaml ./
   COPY example/age.key.txt ${SOPS_AGE_KEYS_DIR}/keys.txt
   COPY scripts/integration-test /usr/local/bin/integration-test

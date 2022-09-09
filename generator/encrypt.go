@@ -6,6 +6,7 @@ package generator
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
 	"github.com/neutronth/kpt-update-ksops-secrets/exec"
@@ -26,7 +27,12 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 
 	for _, key := range uksConfig.GetSecretItems() {
 		value, b64encoded, err := secretRef.Get(key)
-		if err != nil {
+		should_skip := false
+		if err == nil && strings.HasPrefix(value, "ENC[AES256_GCM,data:") && strings.HasSuffix(value, ",type:str]") {
+			should_skip = true
+		}
+
+		if err != nil || should_skip {
 			results = append(results, &framework.Result{
 				Message:  fmt.Sprintf("Secret '%s' not found in the secrets references, encryption skipped", key),
 				Severity: framework.Warning,
