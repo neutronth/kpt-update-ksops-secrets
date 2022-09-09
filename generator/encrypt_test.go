@@ -44,6 +44,24 @@ func uksConfigEncryptedSimple() *config.UpdateKSopsSecrets {
 	}
 }
 
+func uksConfigEncryptedSameSecretAndSecretRefName() *config.UpdateKSopsSecrets {
+	return &config.UpdateKSopsSecrets{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "same-secret-and-secret-ref-name",
+		},
+		Secret: config.UpdateKSopsSecretSpec{
+			References: []string{"unencrypted-secrets", "same-secret-and-secret-ref-name"},
+			Items:      []string{"test", "test2", "UPPER_CASE", "same-secret-and-secret-ref-name"},
+		},
+		Recipients: []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+			},
+		},
+	}
+}
+
 type mockSecretReference struct{}
 
 func (sr *mockSecretReference) GetExact(name, key string) (value string, b64encoded bool, err error) {
@@ -65,6 +83,10 @@ func (sr *mockSecretReference) Get(key string) (value string, b64encoded bool, e
 		err = nil
 	case "UPPER_CASE":
 		value = "upper_case"
+		b64encoded = false
+		err = nil
+	case "same-secret-and-secret-ref-name":
+		value = "ENC[AES256_GCM,data:ICJgw+sCHuU=,iv:xkWe+zgtT4f4nVKuXvy0uNwu1fVqmq6sCcODFWO3ofs=,tag:yHE6jwn9h69lQ0GOgCNrew==,type:str]"
 		b64encoded = false
 		err = nil
 	default:
@@ -231,6 +253,34 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 			if err := assertRecipients(node, uksConfig.Recipients); err != nil {
 				t.Errorf("Expect encrypted for all recipients, got error %s", err)
 			}
+		}
+	})
+
+	t.Run("generate encrypted files from config with same secret and secret reference name", func(t *testing.T) {
+		uksConfig := uksConfigEncryptedSameSecretAndSecretRefName()
+		gen := KSopsGenerator{}
+		secretRef := &mockSecretReference{}
+		_, results := gen.GenerateSecretEncryptedFiles([]*yaml.RNode{}, uksConfig, secretRef)
+		if results.ExitCode() != 0 {
+			t.Fatalf("unexpected error:\n %s", results.Error())
+		}
+
+		only_expected_skipped := false
+		unexpected_skipped := ""
+		for _, result := range results {
+			if strings.HasSuffix(result.String(), "encryption skipped") {
+				if strings.HasPrefix(result.String(), "[warning]: Secret 'same-secret-and-secret-ref-name'") {
+					only_expected_skipped = true
+				} else {
+					only_expected_skipped = false
+					unexpected_skipped = result.String()
+					break
+				}
+			}
+		}
+
+		if !only_expected_skipped {
+			t.Errorf("Expected only 'same-secret-and-secret-ref-name' skipped, but found %v", unexpected_skipped)
 		}
 	})
 }
