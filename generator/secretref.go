@@ -4,12 +4,16 @@
 package generator
 
 import (
+	"errors"
 	"fmt"
+	"regexp"
 
-	sdk "github.com/GoogleContainerTools/kpt-functions-catalog/thirdparty/kyaml/fnsdk"
+	sdk "github.com/GoogleContainerTools/kpt-functions-sdk/go/fn"
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 )
+
+var ErrSecretNotFound = errors.New("secret was not found in the references")
 
 type SecretReference interface {
 	Get(key string) (value string, b64encoded bool, err error)
@@ -17,7 +21,7 @@ type SecretReference interface {
 }
 
 type secretReference struct {
-	secretRefNodes []*yaml.RNode
+	sdk.KubeObjects
 }
 
 func sliceContainsString(slice []string, s string) bool {
@@ -42,27 +46,41 @@ func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []stri
 	return list
 }
 
-func getSecretRefNodes(items []*yaml.RNode, secretrefs []string) []*yaml.RNode {
-	var nodes []*yaml.RNode
+func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.KubeObjects) {
+	skipcheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
+	if err != nil {
+		return
+	}
 
-	oItems := sdk.NewFromRNodes(items)
+	for _, ko := range items {
+		if ko.GetAPIVersion() == "v1" && ko.GetKind() == "Secret" {
+			if skipcheck.MatchString(ko.PathAnnotation()) {
+				continue
+			}
 
-	for _, o := range oItems {
-		if o.APIVersion() == "v1" && o.Kind() == "Secret" {
-			if sliceContainsString(secretrefs, o.Name()) {
-				nodes = append(nodes, o.ToRNode())
+			if sliceContainsString(secretrefs, ko.GetName()) {
+				results = append(results, ko)
 			}
 		}
 	}
 
-	return nodes
+	return
 }
 
 func newSecretReference(items []*yaml.RNode,
 	uksConfig *config.UpdateKSopsSecrets) SecretReference {
 
+	var kobjs sdk.KubeObjects
+
+	for _, item := range items {
+		ko, err := sdk.NewFromTypedObject(item)
+		if err == nil {
+			kobjs = append(kobjs, ko)
+		}
+	}
+
 	return &secretReference{
-		secretRefNodes: getSecretRefNodes(items, listSecretRefsFromConfig(uksConfig)),
+		getSecretRefNodes(kobjs, listSecretRefsFromConfig(uksConfig)),
 	}
 }
 func (sr *secretReference) Get(key string) (value string, b64encoded bool, err error) {
@@ -70,38 +88,30 @@ func (sr *secretReference) Get(key string) (value string, b64encoded bool, err e
 }
 
 func (sr *secretReference) GetExact(name, key string) (value string, b64encoded bool, err error) {
-	if field := sr.lookup(name, key, "stringData"); field != nil {
-		value = yaml.GetValue(field.Value)
+	if val, found := sr.lookup(name, key, "stringData"); found {
+		value = val
 		b64encoded = false
-	} else if field := sr.lookup(name, key, "data"); field != nil {
-		value = yaml.GetValue(field.Value)
+	} else if val, found := sr.lookup(name, key, "data"); found {
+		value = val
 		b64encoded = true
 	} else {
-		err = fmt.Errorf("secret %s was not found in the references", key)
+		err = fmt.Errorf("secret: %s, %w", key, ErrSecretNotFound)
 	}
 
 	return
 }
 
-func (sr *secretReference) lookup(name, key, dataField string) (mapnode *yaml.MapNode) {
-	for _, rn := range sr.secretRefNodes {
-		if name != "" && rn.GetName() != name {
+func (sr *secretReference) lookup(name, key, dataField string) (val string, found bool) {
+	for _, ko := range sr.KubeObjects {
+		if name != "" && ko.GetName() != name {
 			continue
 		}
 
-		n, err := rn.Pipe(yaml.Lookup(dataField))
-		if err != nil {
-			return nil
-		}
-
-		if n == nil {
-			continue
-		}
-
-		if field := n.Field(key); field != nil {
-			return field
+		if data, found, err := ko.NestedStringMap(dataField); err == nil && found {
+			if val, ok := data[key]; ok {
+				return val, true
+			}
 		}
 	}
-
-	return nil
+	return "", false
 }

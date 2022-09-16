@@ -7,7 +7,7 @@ import (
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
 
-	sdk "github.com/GoogleContainerTools/kpt-functions-catalog/thirdparty/kyaml/fnsdk"
+	sdk "github.com/GoogleContainerTools/kpt-functions-sdk/go/fn"
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
 )
 
@@ -20,7 +20,12 @@ type Processor struct {
 }
 
 func (p *Processor) Process(resourceList *framework.ResourceList) error {
-	if err := p.uks.Config(sdk.NewFromRNode(resourceList.FunctionConfig)); err != nil {
+	cfg, err := sdk.NewFromTypedObject(resourceList.FunctionConfig)
+	if err != nil {
+		return errorHandler(resourceList, err)
+	}
+
+	if err := p.uks.Config(cfg); err != nil {
 		return errorHandler(resourceList, err)
 	}
 

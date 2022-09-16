@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"sort"
 
-	sdk "github.com/GoogleContainerTools/kpt-functions-catalog/thirdparty/kyaml/fnsdk"
+	sdk "github.com/GoogleContainerTools/kpt-functions-sdk/go/fn"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -43,7 +43,7 @@ type UpdateKSopsSecrets struct {
 }
 
 func validGVK(ko *sdk.KubeObject, apiVersion, kind string) bool {
-	return ko.APIVersion() == apiVersion && ko.Kind() == kind
+	return ko.GetAPIVersion() == apiVersion && ko.GetKind() == kind
 }
 
 func (uks *UpdateKSopsSecrets) Config(functionConfig *sdk.KubeObject) error {
@@ -57,14 +57,14 @@ func (uks *UpdateKSopsSecrets) Config(functionConfig *sdk.KubeObject) error {
 		return fmt.Errorf("the functionConfig must be a %s", fnConfigKind)
 	}
 
-	uks.ObjectMeta.Name = functionConfig.ToRNode().GetName()
+	uks.ObjectMeta.Name = functionConfig.GetName()
 
-	annotations := functionConfig.ToRNode().GetAnnotations()
+	annotations := functionConfig.GetAnnotations()
 	if len(annotations) > 0 {
 		uks.ObjectMeta.Annotations = annotations
 	}
 
-	labels := functionConfig.ToRNode().GetLabels()
+	labels := functionConfig.GetLabels()
 	if len(labels) > 0 {
 		uks.ObjectMeta.Labels = labels
 	}
