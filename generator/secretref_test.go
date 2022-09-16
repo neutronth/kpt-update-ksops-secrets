@@ -4,6 +4,7 @@
 package generator
 
 import (
+	"errors"
 	"reflect"
 	"testing"
 
@@ -33,6 +34,24 @@ func uksConfigSecretReferenceSimple() *config.UpdateKSopsSecrets {
 					Name: "gpg-publickeys",
 					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
 				},
+			},
+		},
+	}
+}
+
+func uksConfigSecretReferenceSameName() *config.UpdateKSopsSecrets {
+	return &config.UpdateKSopsSecrets{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "samename",
+		},
+		Secret: config.UpdateKSopsSecretSpec{
+			References: []string{"unencrypted-secrets", "samename"},
+			Items:      []string{"unencrypted", "samename"},
+		},
+		Recipients: []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
 			},
 		},
 	}
@@ -177,6 +196,118 @@ data:
 
 			if b64encoded != tc.ExpectedB64Encoded {
 				t.Errorf("Expect %v, got %v", tc.ExpectedB64Encoded, b64encoded)
+			}
+		})
+	}
+}
+
+func TestSecretReferenceSameName(t *testing.T) {
+	var secretlist []*yaml.RNode
+
+	mixedSecrets := []string{`
+apiVersion: v1
+kind: Secret
+metadata:
+  name: unencrypted-secrets
+type: Opaque
+stringData:
+  unencrypted: test
+`, `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: samename
+  annotations:
+    internal.config.kubernetes.io/path: generated/secrets.samename_samename.enc.yaml
+type: Opaque
+data:
+  samename: ENC[AES256_GCM,data:ICJgw+sCHuU=,iv:xkWe+zgtT4f4nVKuXvy0uNwu1fVqmq6sCcODFWO3ofs=,tag:yHE6jwn9h69lQ0GOgCNrew==,type:str]
+`}
+
+	mixedSecretsWithOverride := []string{`
+apiVersion: v1
+kind: Secret
+metadata:
+  name: unencrypted-secrets
+type: Opaque
+stringData:
+  unencrypted: test
+`, `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: samename
+  annotations:
+    internal.config.kubernetes.io/path: generated/secrets.samename_samename.enc.yaml
+type: Opaque
+data:
+  samename: ENC[AES256_GCM,data:ICJgw+sCHuU=,iv:xkWe+zgtT4f4nVKuXvy0uNwu1fVqmq6sCcODFWO3ofs=,tag:yHE6jwn9h69lQ0GOgCNrew==,type:str]
+`, `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: samename
+type: Opaque
+stringData:
+  samename: override
+`,
+	}
+
+	testCases := []struct {
+		Name               string
+		Key                string
+		ExpectedValue      string
+		ExpectedB64Encoded bool
+		ExpectedError      error
+		SecretsSource      []string
+	}{
+		{
+			Name:               "get unencrypted",
+			Key:                "unencrypted",
+			ExpectedValue:      "test",
+			ExpectedB64Encoded: false,
+			ExpectedError:      nil,
+			SecretsSource:      mixedSecrets,
+		},
+		{
+			Name:               "get samename",
+			Key:                "samename",
+			ExpectedValue:      "",
+			ExpectedB64Encoded: false,
+			ExpectedError:      ErrSecretNotFound,
+			SecretsSource:      mixedSecrets,
+		},
+		{
+			Name:               "get samename (override)",
+			Key:                "samename",
+			ExpectedValue:      "override",
+			ExpectedB64Encoded: false,
+			ExpectedError:      nil,
+			SecretsSource:      mixedSecretsWithOverride,
+		},
+	}
+
+	for _, tc := range testCases {
+		for _, ref := range tc.SecretsSource {
+			secretlist = append(secretlist, yaml.MustParse(ref))
+		}
+
+		uksConfig := uksConfigSecretReferenceSameName()
+		secretRef := newSecretReference(secretlist, uksConfig)
+
+		t.Run(tc.Name, func(t *testing.T) {
+			value, b64encoded, err := secretRef.Get(tc.Key)
+
+			if !errors.Is(err, tc.ExpectedError) {
+				t.Fatalf("Expect error %v, got %v", tc.ExpectedError, err)
+			}
+
+			if value != tc.ExpectedValue {
+				t.Errorf("Expect value %v, got %v", tc.ExpectedValue, value)
+			}
+
+			if b64encoded != tc.ExpectedB64Encoded {
+				t.Errorf("Expect base64 %v, got %v", tc.ExpectedB64Encoded, b64encoded)
 			}
 		})
 	}
