@@ -6,6 +6,7 @@ mkdir -p ./generated
 
 run() {
   name="$1"
+  expected="$2"
 
   echo "+------"
   echo "| Test $name ..."
@@ -31,7 +32,22 @@ run() {
   echo "+ Kustomize manifests build:"
   kustomize build --enable-alpha-plugins . | tee /tmp/.kustomize-build.output
 
-  cat <<EOF > /tmp/.kustomize-build.expected
+
+  check=$(diff /tmp/.kustomize-build.output "$expected")
+  if [ -z "$check" ]; then
+    echo "+ Build OK"
+  else
+    echo "+ Build Failed"
+    exit 1
+  fi
+}
+
+##
+# Main
+##
+
+# Expected result
+cat <<EOF > /tmp/.kustomize-build.expected
 apiVersion: v1
 data:
   UPPER_CASE: dXBwZXJfY2FzZQ==
@@ -47,32 +63,39 @@ metadata:
 type: Opaque
 EOF
 
-  check=$(diff /tmp/.kustomize-build.output /tmp/.kustomize-build.expected)
-  if [ -z "$check" ]; then
-    echo "+ Build OK"
-  else
-    echo "+ Build Failed"
-    exit 1
-  fi
-}
-
-##
-# Main
-##
-
 # Passing
 # + Function Config
 #   + update-ksops-secrets.yaml
 # + Unencrypted secrets
 #   + unencrypted-secrets.yaml
 #   + unencrypted-secrets-config-txt.yaml
-run "full generation"
+run "full generation" "/tmp/.kustomize-build.expected"
 
 # Drop unencrypted secret to simulate partial update
 rm -f unencrypted-secrets-config-txt.yaml
-run "partial generation"
+run "partial generation" "/tmp/.kustomize-build.expected"
 
 # Drop all remaining unencrypted secret
 rm -f unencrypted-secrets.yaml
 rm -f test-update-ksops-secrets.yaml
-run "no updated generation"
+run "no updated generation" "/tmp/.kustomize-build.expected"
+
+# Cleanup unused generated file
+# Expected result
+cat <<EOF > /tmp/.kustomize-build-cleanup-unused-generated-file.expected
+apiVersion: v1
+data:
+  UPPER_CASE: dXBwZXJfY2FzZQ==
+  config.txt: Y29uZmlnLnR4dAo=
+  same-secret-and-secret-ref-name: dGVzdA==
+kind: Secret
+metadata:
+  annotations:
+    kustomize.config.k8s.io/behavior: merge
+  name: test-update-ksops-secrets
+type: Opaque
+EOF
+
+sed -i '/- test$/d' update-ksops-secrets.yaml
+sed -i '/- test2$/d' update-ksops-secrets.yaml
+run "cleanup unused generated file" "/tmp/.kustomize-build-cleanup-unused-generated-file.expected"
