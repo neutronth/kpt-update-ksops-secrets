@@ -20,6 +20,10 @@ type Processor struct {
 }
 
 func (p *Processor) Process(resourceList *framework.ResourceList) error {
+	if err := cleanupResourceForPath(resourceList, ResultFileKSopsGenerator); err != nil {
+		return err
+	}
+
 	cfg, err := sdk.NewFromTypedObject(resourceList.FunctionConfig)
 	if err != nil {
 		return errorHandler(resourceList, err)
@@ -66,6 +70,26 @@ func (p *Processor) Process(resourceList *framework.ResourceList) error {
 		ksopsGenerator,
 		secretEncryptedFiles,
 	)
+	return nil
+}
+
+func cleanupResourceForPath(resourceList *framework.ResourceList, path string) error {
+	var items []*yaml.RNode
+	for _, resource := range resourceList.Items {
+		resourcePath, _, err := kioutil.GetFileAnnotations(resource)
+		if err != nil {
+			return err
+		}
+		if resourcePath != path {
+			items = append(items, resource)
+		} else {
+			resourceList.Results = append(resourceList.Results, &framework.Result{
+				Message:  fmt.Sprintf("Cleanup resource name %s at path %s", resource.GetName(), resourcePath),
+				Severity: framework.Info,
+			})
+		}
+	}
+	resourceList.Items = items
 	return nil
 }
 
