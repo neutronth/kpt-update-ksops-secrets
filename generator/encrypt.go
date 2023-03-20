@@ -5,6 +5,7 @@ package generator
 
 import (
 	"encoding/base64"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -32,10 +33,17 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 			shouldSkip = true
 		}
 
-		if err != nil || shouldSkip {
+		if err != nil && errors.Unwrap(err) == ErrSecretNotFound || shouldSkip {
 			results = append(results, &framework.Result{
 				Message:  fmt.Sprintf("Secret '%s' not found in the secrets references, encryption skipped", key),
 				Severity: framework.Warning,
+			})
+			continue
+		}
+		if err != nil {
+			results = append(results, &framework.Result{
+				Message:  fmt.Sprintf("Secret '%s' get failure: %s", key, err),
+				Severity: framework.Error,
 			})
 			continue
 		}
