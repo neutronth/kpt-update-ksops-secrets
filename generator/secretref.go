@@ -4,6 +4,7 @@
 package generator
 
 import (
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"regexp"
@@ -89,16 +90,14 @@ func (sr *secretReference) Get(key string) (value string, b64encoded bool, err e
 
 func (sr *secretReference) GetExact(name, key string) (value string, b64encoded bool, err error) {
 	if val, found := sr.lookup(name, key, "stringData"); found {
-		value = val
-		b64encoded = false
+		return val, false, nil
 	} else if val, found := sr.lookup(name, key, "data"); found {
-		value = val
-		b64encoded = true
-	} else {
-		err = fmt.Errorf("secret: %s, %w", key, ErrSecretNotFound)
+		if _, err := base64.StdEncoding.DecodeString(val); err != nil {
+			return "", false, err
+		}
+		return val, true, nil
 	}
-
-	return
+	return "", false, fmt.Errorf("secret: %s, %w", key, ErrSecretNotFound)
 }
 
 func (sr *secretReference) lookup(name, key, dataField string) (val string, found bool) {

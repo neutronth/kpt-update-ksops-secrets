@@ -312,3 +312,35 @@ stringData:
 		})
 	}
 }
+
+func TestSecretReferenceUnencodedBase64DataBlock(t *testing.T) {
+	data := `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: unencoded-b64-data
+type: Opaque
+data:
+  KEY: plaintext
+`
+	secretlist := []*yaml.RNode{yaml.MustParse(data)}
+	uksConfig := uksConfigSecretReferenceSameName()
+	uksConfig.Secret.References = []string{"unencoded-b64-data"}
+	uksConfig.Secret.Items = []string{"KEY"}
+
+	secretRef := newSecretReference(secretlist, uksConfig)
+	v, encoded, err := secretRef.Get("KEY")
+
+	if err == nil {
+		t.Fatal("Expected error, got nil")
+	}
+	if errors.Unwrap(err) == ErrSecretNotFound {
+		t.Fatal("Expected err is another error not ErrSecretNotFound.")
+	}
+	if v != "" {
+		t.Fatalf("Expected value to be empty string, got %s", v)
+	}
+	if encoded {
+		t.Fatal("Value is unencoded (false), got true")
+	}
+}
