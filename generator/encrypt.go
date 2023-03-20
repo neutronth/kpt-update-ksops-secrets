@@ -27,12 +27,12 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 
 	for _, key := range uksConfig.GetSecretItems() {
 		value, b64encoded, err := secretRef.Get(key)
-		should_skip := false
+		shouldSkip := false
 		if err == nil && strings.HasPrefix(value, "ENC[AES256_GCM,data:") && strings.HasSuffix(value, ",type:str]") {
-			should_skip = true
+			shouldSkip = true
 		}
 
-		if err != nil || should_skip {
+		if err != nil || shouldSkip {
 			results = append(results, &framework.Result{
 				Message:  fmt.Sprintf("Secret '%s' not found in the secrets references, encryption skipped", key),
 				Severity: framework.Warning,
