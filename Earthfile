@@ -1,7 +1,7 @@
 VERSION 0.6
 
 source:
-  FROM golang:1.18-bullseye
+  FROM golang:1.20-bullseye
   ENV CGO_ENABLED=0
 
   WORKDIR /src
@@ -18,7 +18,7 @@ build-sops:
   # SOPS MAC (Message Authentication Code) invalid and error on decryption.
   # The custom SOPS is required during secrets encryption in Kpt pipeline only,
   # the generated encrypted files still compatible with the upstream binary.
-  FROM golang:1.18-bullseye
+  FROM golang:1.20-bullseye
   ENV DEBIAN_FRONTEND=noninteractive
   ENV CGO_ENABLED=0
 
@@ -39,7 +39,7 @@ build-sops:
 lint:
   FROM +source
 
-  RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.46.2
+  RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.0
   RUN golangci-lint run --verbose ./...
 
 test:
