@@ -26,3 +26,26 @@ jobs:
 
       - name: run integration image test
         run: earthly --ci --verbose --allow-privileged +integration-image-test
+
+  ci-images-build:
+    name: Build linux/amd64 and linux/arm64 images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up QEMU
+        id: qemu
+        uses: docker/setup-qemu-action@v1
+        with:
+          image: tonistiigi/binfmt:latest
+          platforms: all
+
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+
+      - uses: earthly/actions/setup-earthly@v1
+        with:
+          version: v0.6.23
+
+      - name: build
+        run: earthly --ci --verbose +image-all-platforms --IMAGE_TAG="development"

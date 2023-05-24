@@ -40,7 +40,7 @@ lint:
   FROM +source
 
   RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.0
-  RUN golangci-lint run --verbose ./...
+  RUN golangci-lint run --verbose --timeout="5m" ./...
 
 test:
   FROM +lint
