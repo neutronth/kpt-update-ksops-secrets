@@ -112,6 +112,9 @@ image:
 
   SAVE IMAGE --push ghcr.io/neutronth/kpt-update-ksops-secrets:${IMAGE_TAG}
 
+image-all-platforms:
+  BUILD --platform=linux/amd64 --platform=linux/arm64 +image
+
 integration-base:
   ARG BASE_IMAGE
   FROM ${BASE_IMAGE}
