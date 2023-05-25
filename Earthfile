@@ -1,4 +1,6 @@
-VERSION 0.6
+VERSION 0.7
+
+ARG --global IMAGE_TAG="dev"
 
 source:
   FROM golang:1.20-bullseye
@@ -40,7 +42,7 @@ lint:
   FROM +source
 
   RUN go install github.com/golangci/golangci-lint/cmd/golangci-lint@v1.52.0
-  RUN golangci-lint run --verbose ./...
+  RUN golangci-lint run --verbose --timeout="5m" ./...
 
 test:
   FROM +lint
@@ -85,7 +87,7 @@ download-tools:
   SAVE ARTIFACT ksops
 
 image:
-  ARG IMAGE_TAG="dev"
+  ARG IMAGE_TAG="${IMAGE_TAG}"
 
   FROM debian:bullseye-slim
 
