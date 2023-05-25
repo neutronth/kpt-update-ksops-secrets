@@ -260,3 +260,8 @@ $ kpt fn eval \
     --fn-config=update-ksops-secrets.yaml \
     --network
 ```
+#### Multi-platform images support
+
+The update-ksops-secrets supports in version described below:
+  * linux/amd64: >= 0.1
+  * linux/arm64: >= 0.12
