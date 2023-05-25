@@ -1,4 +1,6 @@
-VERSION 0.6
+VERSION 0.7
+
+ARG --global IMAGE_TAG="dev"
 
 source:
   FROM golang:1.20-bullseye
@@ -85,7 +87,7 @@ download-tools:
   SAVE ARTIFACT ksops
 
 image:
-  ARG IMAGE_TAG="dev"
+  ARG IMAGE_TAG="${IMAGE_TAG}"
 
   FROM debian:bullseye-slim
 
