@@ -39,5 +39,5 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: build and publish image
-        run: earthly --ci --verbose --push +image --IMAGE_TAG=${{ steps.vars.outputs.tag }}
+      - name: build and publish image linux/amd64 and linux/arm64 platforms
+        run: earthly --ci --verbose --push +image-all-platforms --IMAGE_TAG=${{ steps.vars.outputs.tag }}
