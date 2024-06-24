@@ -57,6 +57,36 @@ func uksConfigSecretReferenceSameName() *config.UpdateKSopsSecrets {
 	}
 }
 
+func uksConfigSecretFingerprint() *config.UpdateKSopsSecrets {
+	return &config.UpdateKSopsSecrets{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "test-update-ksops-secrets",
+		},
+		Secret: config.UpdateKSopsSecretSpec{
+			References: []string{"test-update-ksops-secrets"},
+			Items:      []string{"test"},
+		},
+		Recipients: []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
+				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
+					Name: "gpg-publickeys",
+					Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
+				},
+			},
+		},
+	}
+}
+
 func TestSecretReference(t *testing.T) {
 	var secretlist []*yaml.RNode
 
@@ -342,5 +372,47 @@ data:
 	}
 	if encoded {
 		t.Fatal("Value is unencoded (false), got true")
+	}
+}
+
+func TestSecretEncryptedFingerprint(t *testing.T) {
+	var secretlist []*yaml.RNode
+
+	secrets := []string{`
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-update-ksops-secrets
+type: Opaque
+stringData:
+  test: test
+`, `
+apiVersion: v1
+kind: Secret
+metadata:
+  name: test-update-ksops-secrets
+  annotations:
+    kustomize.config.k8s.io/behavior: merge
+    internal.config.kubernetes.io/path: generated/secrets.test-update-ksops-secrets_test.enc.yaml
+type: Opaque
+data:
+  test: ENC[AES256_GCM,data:IUJvrFsCOzM=,iv:WGt9lQnO1VNbFkMN26EDacHUF0xQNvmDZfzPjzp6S8Q=,tag:Y56ZVMB9MIlxv1B/t2VPVQ==,type:str]
+sops:
+  encrypted_fp:
+    test: +OSdrYZqZjj3uQ68dhoHpKqAMCe8gMR4PyDtQ5sVdhViHh6rbhd4mwZeZ5uWFQjkY7S+ISp4wq9ioNmwATnI53EtuZajI5C19oUmCj8HEYobVw==
+`}
+
+	for _, ref := range secrets {
+		secretlist = append(secretlist, yaml.MustParse(ref))
+	}
+
+	uksConfig := uksConfigSecretFingerprint()
+	secretRef := newSecretReference(secretlist, uksConfig)
+
+	fp := secretRef.GetEncryptedFP("test-update-ksops-secrets", "test")
+	expected := "+OSdrYZqZjj3uQ68dhoHpKqAMCe8gMR4PyDtQ5sVdhViHh6rbhd4mwZeZ5uWFQjkY7S+ISp4wq9ioNmwATnI53EtuZajI5C19oUmCj8HEYobVw=="
+
+	if fp != expected {
+		t.Errorf("Expect fingerprint %s, got %s", expected, fp)
 	}
 }

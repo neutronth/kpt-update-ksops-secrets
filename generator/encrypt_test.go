@@ -73,6 +73,10 @@ func (sr *mockSecretReference) Get(key string) (value string, b64encoded bool, e
 	return
 }
 
+func (sr *mockSecretReference) GetEncryptedFP(name, key string) string {
+	return ""
+}
+
 func TestGPGRecipients(t *testing.T) {
 	uksConfig := uksConfigEncryptedSimple()
 
@@ -230,6 +234,74 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 
 			if err := assertRecipients(node, uksConfig.Recipients); err != nil {
 				t.Errorf("Expect encrypted for all recipients, got error %s", err)
+			}
+		}
+	})
+}
+
+func TestSecretFingerprint(t *testing.T) {
+	t.Run("fingerprint seal and try open", func(t *testing.T) {
+		recipients := []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
+					Name: "gpg-publickeys",
+					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+				},
+			},
+		}
+
+		fp, err := secretFingerprintSeal("secret-name", "Opaque", "test", "secret", false, recipients...)
+		if err != nil {
+			t.Errorf("Expect no errors got %v", err)
+		}
+
+		if fp == "" {
+			t.Errorf("Expect non-empty sealed fingerprint, got %s", fp)
+		}
+
+		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "secret", false, recipients...)
+		if err != nil {
+			t.Errorf("Expect no errors got %v", err)
+		}
+
+		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "c2VjcmV0", true, recipients...)
+		if err != nil {
+			t.Errorf("Expect no errors got %v", err)
+		}
+
+		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "invalidsecret", false, recipients...)
+		if err == nil {
+			t.Errorf("Expect errors as invalid/changed secret provided but got %v", err)
+		}
+	})
+
+	t.Run("generate encrypted files with encrypted_fp added", func(t *testing.T) {
+		uksConfig := uksConfigEncryptedSimple()
+		gen := KSopsGenerator{}
+		secretRef := &mockSecretReference{}
+		nodes, results := gen.GenerateSecretEncryptedFiles([]*yaml.RNode{}, uksConfig, secretRef)
+		if results.ExitCode() != 0 {
+			t.Fatalf("unexpected error:\n %s", results.Error())
+		}
+
+		for _, node := range nodes {
+			data, err := node.GetFieldValue("sops.encrypted_fp")
+			if err != nil {
+				t.Fatalf("lookup for sops.encrypted_fp error: %s", err.Error())
+			}
+
+			if len(data.(map[string]interface{})) == 0 {
+				t.Error("Expect encrypted_fp field exists, got none")
 			}
 		}
 	})

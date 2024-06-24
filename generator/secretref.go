@@ -19,6 +19,7 @@ var ErrSecretNotFound = errors.New("secret was not found in the references")
 type SecretReference interface {
 	Get(key string) (value string, b64encoded bool, err error)
 	GetExact(name, key string) (value string, b64encoded bool, err error)
+	GetEncryptedFP(name, key string) string
 }
 
 type secretReference struct {
@@ -48,17 +49,8 @@ func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []stri
 }
 
 func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.KubeObjects) {
-	skipcheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
-	if err != nil {
-		return
-	}
-
 	for _, ko := range items {
 		if ko.GetAPIVersion() == "v1" && ko.GetKind() == "Secret" {
-			if skipcheck.MatchString(ko.PathAnnotation()) {
-				continue
-			}
-
 			if sliceContainsString(secretrefs, ko.GetName()) {
 				results = append(results, ko)
 			}
@@ -66,6 +58,25 @@ func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.
 	}
 
 	return
+}
+
+func encryptedSecretPredicate(expected bool) (f func(ko *sdk.KubeObject) bool) {
+	skipcheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
+	if err != nil {
+		return f
+	}
+
+	return func(ko *sdk.KubeObject) bool {
+		return skipcheck.MatchString(ko.PathAnnotation()) == expected
+	}
+}
+
+func (sr *secretReference) onlyEncryptedSecrets() (results sdk.KubeObjects) {
+	return sr.Where(encryptedSecretPredicate(true))
+}
+
+func (sr *secretReference) withoutEncryptedSecrets() (results sdk.KubeObjects) {
+	return sr.Where(encryptedSecretPredicate(false))
 }
 
 func newSecretReference(items []*yaml.RNode,
@@ -101,7 +112,7 @@ func (sr *secretReference) GetExact(name, key string) (value string, b64encoded 
 }
 
 func (sr *secretReference) lookup(name, key, dataField string) (val string, found bool) {
-	for _, ko := range sr.KubeObjects {
+	for _, ko := range sr.withoutEncryptedSecrets() {
 		if name != "" && ko.GetName() != name {
 			continue
 		}
@@ -113,4 +124,20 @@ func (sr *secretReference) lookup(name, key, dataField string) (val string, foun
 		}
 	}
 	return "", false
+}
+
+func (sr *secretReference) GetEncryptedFP(name, key string) string {
+	for _, ko := range sr.onlyEncryptedSecrets() {
+		if name != "" && ko.GetName() != name {
+			continue
+		}
+
+		if data, found, err := ko.NestedStringMap("sops", "encrypted_fp"); err == nil && found {
+			if val, ok := data[key]; ok {
+				return val
+			}
+		}
+	}
+
+	return ""
 }
