@@ -1,6 +1,6 @@
 module github.com/neutronth/kpt-update-ksops-secrets
 
-go 1.18
+go 1.22
 
 require (
 	github.com/GoogleContainerTools/kpt-functions-sdk/go/fn v0.0.0-20230302070146-e8e9cb3c3ae2
