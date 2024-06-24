@@ -42,6 +42,28 @@ run() {
   fi
 }
 
+test_encrypt_once() {
+  echo "+------"
+  echo "| Test encrypt once ..."
+  echo "+------"
+
+  echo "+ Kpt function execute:"
+  kpt fn eval \
+    --exec /usr/local/bin/kpt-update-ksops-secrets \
+    --fn-config ./update-ksops-secrets.yaml \
+    --truncate-output=false 2>&1 | tee /tmp/.kpt.output
+
+  grep "Secret '" /tmp/.kpt.output | grep -v "has been encrypted and not changed, encryption skipped" > /tmp/.kpt-expected || true
+
+  if [ -z "$(cat /tmp/.kpt-expected)" ]; then
+    echo "+ Encrypt once OK"
+  else
+    echo "+ Encrypt once Failed"
+    cat /tmp/.kpt-expected
+    exit 1
+  fi
+}
+
 ##
 # Main
 ##
@@ -70,6 +92,9 @@ EOF
 #   + unencrypted-secrets.yaml
 #   + unencrypted-secrets-config-txt.yaml
 run "full generation" "/tmp/.kustomize-build.expected"
+
+# Run again with the same parameters, skip all encryptions
+test_encrypt_once
 
 # Drop unencrypted secret to simulate partial update
 rm -f unencrypted-secrets-config-txt.yaml
