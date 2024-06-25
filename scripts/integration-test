@@ -43,8 +43,9 @@ run() {
 }
 
 test_encrypt_once() {
+  name="$1"
   echo "+------"
-  echo "| Test encrypt once ..."
+  echo "| Test $name ..."
   echo "+------"
 
   echo "+ Kpt function execute:"
@@ -94,10 +95,42 @@ EOF
 run "full generation" "/tmp/.kustomize-build.expected"
 
 # Run again with the same parameters, skip all encryptions
-test_encrypt_once
+test_encrypt_once "encrypt once"
 
-# Drop unencrypted secret to simulate partial update
+# Run again with the same parameters, no self secret name in references, skip all encryptions
+sed -i "s/  - test-update-ksops-secrets/#  - test-update-ksops-secrets/g" update-ksops-secrets.yaml
+test_encrypt_once "encrypt once, no self secret name in references"
+sed -i "s/#  - test-update-ksops-secrets/  - test-update-ksops-secrets/g" update-ksops-secrets.yaml
+
+# Drop unencrypted secret and update some values to simulate partial update
+# Expected result
+cat <<EOF > /tmp/.kustomize-build.expected
+apiVersion: v1
+data:
+  UPPER_CASE: dXBwZXJfY2FzZQ==
+  config.txt: Y29uZmlnLnR4dAo=
+  same-secret-and-secret-ref-name: dGVzdA==
+  test: dGVzdA==
+  test2: dGVzdDItbmV3
+kind: Secret
+metadata:
+  annotations:
+    kustomize.config.k8s.io/behavior: merge
+  name: test-update-ksops-secrets
+type: Opaque
+EOF
+
 rm -f unencrypted-secrets-config-txt.yaml
+
+cat <<EOF > unencrypted-secrets.yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: unencrypted-secrets
+stringData:
+  test2: test2-new
+EOF
+
 run "partial generation" "/tmp/.kustomize-build.expected"
 
 # Drop all remaining unencrypted secret

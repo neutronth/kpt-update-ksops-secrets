@@ -45,6 +45,10 @@ func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []stri
 		}
 	}
 
+	if !sliceContainsString(list, uksConfig.GetName()) {
+		list = append(list, uksConfig.GetName())
+	}
+
 	return list
 }
 
@@ -61,13 +65,13 @@ func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.
 }
 
 func encryptedSecretPredicate(expected bool) (f func(ko *sdk.KubeObject) bool) {
-	skipcheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
+	encryptedFilesCheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
 	if err != nil {
 		return f
 	}
 
 	return func(ko *sdk.KubeObject) bool {
-		return skipcheck.MatchString(ko.PathAnnotation()) == expected
+		return encryptedFilesCheck.MatchString(ko.PathAnnotation()) == expected
 	}
 }
 

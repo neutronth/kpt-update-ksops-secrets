@@ -131,6 +131,7 @@ data:
 			"unencrypted-secrets",
 			"unencrypted-secrets-config-txt",
 			"gpg-publickeys",
+			"test",
 		}
 
 		list := listSecretRefsFromConfig(uksConfig)
