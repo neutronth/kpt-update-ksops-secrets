@@ -43,8 +43,9 @@ run() {
 }
 
 test_encrypt_once() {
+  name="$1"
   echo "+------"
-  echo "| Test encrypt once ..."
+  echo "| Test $name ..."
   echo "+------"
 
   echo "+ Kpt function execute:"
@@ -94,7 +95,12 @@ EOF
 run "full generation" "/tmp/.kustomize-build.expected"
 
 # Run again with the same parameters, skip all encryptions
-test_encrypt_once
+test_encrypt_once "encrypt once"
+
+# Run again with the same parameters, no self secret name in references, skip all encryptions
+sed -i "s/  - test-update-ksops-secrets/#  - test-update-ksops-secrets/g" update-ksops-secrets.yaml
+test_encrypt_once "encrypt once, no self secret name in references"
+sed -i "s/#  - test-update-ksops-secrets/  - test-update-ksops-secrets/g" update-ksops-secrets.yaml
 
 # Drop unencrypted secret to simulate partial update
 rm -f unencrypted-secrets-config-txt.yaml
