@@ -4,16 +4,26 @@
 package generator
 
 import (
+	"bytes"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
 	"encoding/base64"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
 	"github.com/neutronth/kpt-update-ksops-secrets/exec"
+	"golang.org/x/crypto/argon2"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+)
+
+const (
+	gcmStandardNonceSize = 12
 )
 
 func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
@@ -47,6 +57,21 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 			})
 			continue
 		}
+
+		encryptedFP := secretRef.GetEncryptedFP(uksConfig.GetName(), key)
+		encryptedOnceErr := secretFingerprintTryOpen(encryptedFP, uksConfig.GetName(), uksConfig.GetType(), key, value, b64encoded, uksConfig.Recipients...)
+		if encryptedOnceErr == nil {
+			results = append(results, &framework.Result{
+				Message:  fmt.Sprintf("Secret '%s' has been encrypted and not changed, encryption skipped", key),
+				Severity: framework.Warning,
+			})
+			continue
+		}
+
+		results = append(results, &framework.Result{
+			Message:  fmt.Sprintf("Secret '%s' '%s' error %s", key, uksConfig.GetName(), encryptedOnceErr.Error()),
+			Severity: framework.Warning,
+		})
 
 		encNode, err := NewSecretEncryptedFileNode(
 			uksConfig.GetName(),
@@ -124,6 +149,26 @@ data:
 	}
 
 	enc := yaml.MustParse(output)
+
+	// Add the encrypted fingerprint to support the encrypt once consideration
+	fingerprintCiphertext, err := secretFingerprintSeal(secretName, secretType, key, dataValue, true, recipients...)
+	if err != nil {
+		return nil, err
+	}
+
+	encryptedFPMap := yaml.NewMapRNode(&map[string]string{
+		key: fingerprintCiphertext,
+	})
+
+	rnType, err := enc.Pipe(yaml.Lookup("sops"))
+	if err != nil {
+		return nil, err
+	}
+
+	err = rnType.SetMapField(encryptedFPMap, "encrypted_fp")
+	if err != nil {
+		return nil, err
+	}
 
 	// The Sops render the encrypted YAML as a wide sequences indentation
 	if _, err := enc.Pipe(yaml.SetAnnotation(kioutil.SeqIndentAnnotation,
@@ -252,4 +297,86 @@ func encodeValue(value string) (enc string) {
 
 func decodeValue(value string) (enc []byte, err error) {
 	return base64.StdEncoding.DecodeString(value)
+}
+
+func secretFingerprintCryptoKey(secretName, secretType, key, value string, b64encoded bool,
+	salt []byte,
+	recipients ...config.UpdateKSopsRecipient,
+) []byte {
+	var buffer bytes.Buffer
+
+	secretValue := value
+	if !b64encoded {
+		secretValue = encodeValue(value)
+	}
+
+	buffer.WriteString(secretName)
+	buffer.WriteString(secretType)
+	buffer.WriteString(key)
+	buffer.WriteString(secretValue)
+
+	for _, recipient := range recipients {
+		buffer.WriteString(recipient.Type)
+		buffer.WriteString(recipient.Recipient)
+	}
+
+	return argon2.IDKey(buffer.Bytes(), salt, 1, 46*1024, 1, 32)
+}
+
+func secretFingerprintSeal(secretName, secretType, key, value string, b64encoded bool,
+	recipients ...config.UpdateKSopsRecipient,
+) (string, error) {
+	nonce := make([]byte, gcmStandardNonceSize)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		return "", fmt.Errorf("Random nonce error: %w", err)
+	}
+
+	secretKey := secretFingerprintCryptoKey(secretName, secretType, key, value, b64encoded, nonce, recipients...)
+
+	block, err := aes.NewCipher(secretKey)
+	if err != nil {
+		return "", fmt.Errorf("AES cipher error: %w", err)
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return "", fmt.Errorf("GCM cipher error: %w", err)
+	}
+
+	// Data does not matter
+	data := time.Now().String()
+
+	ciphertext := aesgcm.Seal(nonce, nonce, []byte(data), nil)
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
+}
+
+func secretFingerprintTryOpen(b64Ciphertext, secretName, secretType, key, value string, b64encoded bool,
+	recipients ...config.UpdateKSopsRecipient,
+) error {
+	if b64Ciphertext == "" {
+		return fmt.Errorf("Base64 ciphertext is empty")
+	}
+
+	ciphertext, err := base64.StdEncoding.DecodeString(b64Ciphertext)
+	if err != nil {
+		return fmt.Errorf("Base64 decode error: %w", err)
+	}
+
+	nonce, ciphertext := ciphertext[:gcmStandardNonceSize], ciphertext[gcmStandardNonceSize:]
+
+	secretKey := secretFingerprintCryptoKey(secretName, secretType, key, value, b64encoded, nonce, recipients...)
+
+	block, err := aes.NewCipher(secretKey)
+	if err != nil {
+		return fmt.Errorf("AES cipher error: %w", err)
+	}
+
+	aesgcm, err := cipher.NewGCM(block)
+	if err != nil {
+		return fmt.Errorf("GCM cipher error: %w", err)
+	}
+
+	_, err = aesgcm.Open(nil, nonce, ciphertext, nil)
+	return err
 }

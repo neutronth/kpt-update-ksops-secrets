@@ -3,7 +3,7 @@ VERSION 0.7
 ARG --global IMAGE_TAG="dev"
 
 source:
-  FROM golang:1.20-bullseye
+  FROM golang:1.22-bullseye
   ENV CGO_ENABLED=0
 
   WORKDIR /src
@@ -20,7 +20,7 @@ build-sops:
   # SOPS MAC (Message Authentication Code) invalid and error on decryption.
   # The custom SOPS is required during secrets encryption in Kpt pipeline only,
   # the generated encrypted files still compatible with the upstream binary.
-  FROM golang:1.20-bullseye
+  FROM golang:1.22-bullseye
   ENV DEBIAN_FRONTEND=noninteractive
   ENV CGO_ENABLED=0
 
@@ -149,7 +149,7 @@ integration-test:
   RUN --no-cache integration-test
 
 integration-image-test:
-  FROM +integration-base --BASE_IMAGE=earthly/dind:ubuntu
+  FROM +integration-base --BASE_IMAGE=earthly/dind:ubuntu-20.04
 
   WITH DOCKER --load=ghcr.io/neutronth/kpt-update-ksops-secrets:latest=+image
     RUN --no-cache \
