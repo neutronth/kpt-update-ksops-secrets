@@ -45,6 +45,10 @@ func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []stri
 		}
 	}
 
+	if !sliceContainsString(list, uksConfig.GetName()) {
+		list = append(list, uksConfig.GetName())
+	}
+
 	return list
 }
 
