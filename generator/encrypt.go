@@ -4,10 +4,10 @@
 package generator
 
 import (
+	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
 	"crypto/rand"
-	"crypto/sha256"
 	"encoding/base64"
 	"errors"
 	"fmt"
@@ -16,9 +16,14 @@ import (
 
 	"github.com/neutronth/kpt-update-ksops-secrets/config"
 	"github.com/neutronth/kpt-update-ksops-secrets/exec"
+	"golang.org/x/crypto/argon2"
 	"sigs.k8s.io/kustomize/kyaml/fn/framework"
 	"sigs.k8s.io/kustomize/kyaml/kio/kioutil"
 	"sigs.k8s.io/kustomize/kyaml/yaml"
+)
+
+const (
+	gcmStandardNonceSize = 12
 )
 
 func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
@@ -294,32 +299,40 @@ func decodeValue(value string) (enc []byte, err error) {
 	return base64.StdEncoding.DecodeString(value)
 }
 
-func secretFingerprintKeyHash(secretName, secretType, key, value string, b64encoded bool,
+func secretFingerprintCryptoKey(secretName, secretType, key, value string, b64encoded bool,
+	salt []byte,
 	recipients ...config.UpdateKSopsRecipient,
 ) []byte {
+	var buffer bytes.Buffer
+
 	secretValue := value
 	if !b64encoded {
 		secretValue = encodeValue(value)
 	}
 
-	hasher := sha256.New()
-	hasher.Write([]byte(secretName))
-	hasher.Write([]byte(secretType))
-	hasher.Write([]byte(key))
-	hasher.Write([]byte(secretValue))
+	buffer.WriteString(secretName)
+	buffer.WriteString(secretType)
+	buffer.WriteString(key)
+	buffer.WriteString(secretValue)
 
 	for _, recipient := range recipients {
-		hasher.Write([]byte(recipient.Type))
-		hasher.Write([]byte(recipient.Recipient))
+		buffer.WriteString(recipient.Type)
+		buffer.WriteString(recipient.Recipient)
 	}
 
-	return hasher.Sum(nil)
+	return argon2.IDKey(buffer.Bytes(), salt, 1, 46*1024, 1, 32)
 }
 
 func secretFingerprintSeal(secretName, secretType, key, value string, b64encoded bool,
 	recipients ...config.UpdateKSopsRecipient,
 ) (string, error) {
-	secretKey := secretFingerprintKeyHash(secretName, secretType, key, value, b64encoded, recipients...)
+	nonce := make([]byte, gcmStandardNonceSize)
+	_, err := rand.Read(nonce)
+	if err != nil {
+		return "", fmt.Errorf("Random nonce error: %w", err)
+	}
+
+	secretKey := secretFingerprintCryptoKey(secretName, secretType, key, value, b64encoded, nonce, recipients...)
 
 	block, err := aes.NewCipher(secretKey)
 	if err != nil {
@@ -329,12 +342,6 @@ func secretFingerprintSeal(secretName, secretType, key, value string, b64encoded
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
 		return "", fmt.Errorf("GCM cipher error: %w", err)
-	}
-
-	nonce := make([]byte, aesgcm.NonceSize())
-	_, err = rand.Read(nonce)
-	if err != nil {
-		return "", fmt.Errorf("Random nonce error: %w", err)
 	}
 
 	// Data does not matter
@@ -351,7 +358,14 @@ func secretFingerprintTryOpen(b64Ciphertext, secretName, secretType, key, value 
 		return fmt.Errorf("Base64 ciphertext is empty")
 	}
 
-	secretKey := secretFingerprintKeyHash(secretName, secretType, key, value, b64encoded, recipients...)
+	ciphertext, err := base64.StdEncoding.DecodeString(b64Ciphertext)
+	if err != nil {
+		return fmt.Errorf("Base64 decode error: %w", err)
+	}
+
+	nonce, ciphertext := ciphertext[:gcmStandardNonceSize], ciphertext[gcmStandardNonceSize:]
+
+	secretKey := secretFingerprintCryptoKey(secretName, secretType, key, value, b64encoded, nonce, recipients...)
 
 	block, err := aes.NewCipher(secretKey)
 	if err != nil {
@@ -362,14 +376,6 @@ func secretFingerprintTryOpen(b64Ciphertext, secretName, secretType, key, value 
 	if err != nil {
 		return fmt.Errorf("GCM cipher error: %w", err)
 	}
-
-	ciphertext, err := base64.StdEncoding.DecodeString(b64Ciphertext)
-	if err != nil {
-		return fmt.Errorf("Base64 decode error: %w", err)
-	}
-
-	nonceSize := aesgcm.NonceSize()
-	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
 
 	_, err = aesgcm.Open(nil, nonce, ciphertext, nil)
 	return err
