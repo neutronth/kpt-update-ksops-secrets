@@ -59,8 +59,8 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 		}
 
 		encryptedFP := secretRef.GetEncryptedFP(uksConfig.GetName(), key)
-		encryptedOnceErr := secretFingerprintTryOpen(encryptedFP, uksConfig.GetName(), uksConfig.GetType(), key, value, b64encoded, uksConfig.Recipients...)
-		if encryptedOnceErr == nil {
+		found, encryptedOnceErr := secretFingerprintTryOpen(encryptedFP, uksConfig.GetName(), uksConfig.GetType(), key, value, b64encoded, uksConfig.Recipients...)
+		if found {
 			results = append(results, &framework.Result{
 				Message:  fmt.Sprintf("Secret '%s' has been encrypted and not changed, encryption skipped", key),
 				Severity: framework.Warning,
@@ -68,10 +68,12 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 			continue
 		}
 
-		results = append(results, &framework.Result{
-			Message:  fmt.Sprintf("Secret '%s' '%s' error %s", key, uksConfig.GetName(), encryptedOnceErr.Error()),
-			Severity: framework.Warning,
-		})
+		if encryptedOnceErr != nil {
+			results = append(results, &framework.Result{
+				Message:  fmt.Sprintf("Secret '%s' '%s' error %s", key, uksConfig.GetName(), encryptedOnceErr.Error()),
+				Severity: framework.Warning,
+			})
+		}
 
 		encNode, err := NewSecretEncryptedFileNode(
 			uksConfig.GetName(),
@@ -353,14 +355,14 @@ func secretFingerprintSeal(secretName, secretType, key, value string, b64encoded
 
 func secretFingerprintTryOpen(b64Ciphertext, secretName, secretType, key, value string, b64encoded bool,
 	recipients ...config.UpdateKSopsRecipient,
-) error {
+) (found bool, err error) {
 	if b64Ciphertext == "" {
-		return fmt.Errorf("Base64 ciphertext is empty")
+		return false, nil
 	}
 
 	ciphertext, err := base64.StdEncoding.DecodeString(b64Ciphertext)
 	if err != nil {
-		return fmt.Errorf("Base64 decode error: %w", err)
+		return false, fmt.Errorf("Base64 decode error: %w", err)
 	}
 
 	nonce, ciphertext := ciphertext[:gcmStandardNonceSize], ciphertext[gcmStandardNonceSize:]
@@ -369,14 +371,14 @@ func secretFingerprintTryOpen(b64Ciphertext, secretName, secretType, key, value 
 
 	block, err := aes.NewCipher(secretKey)
 	if err != nil {
-		return fmt.Errorf("AES cipher error: %w", err)
+		return false, fmt.Errorf("AES cipher error: %w", err)
 	}
 
 	aesgcm, err := cipher.NewGCM(block)
 	if err != nil {
-		return fmt.Errorf("GCM cipher error: %w", err)
+		return false, fmt.Errorf("GCM cipher error: %w", err)
 	}
 
 	_, err = aesgcm.Open(nil, nonce, ciphertext, nil)
-	return err
+	return err == nil, nil
 }
