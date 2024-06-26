@@ -36,7 +36,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -53,7 +53,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -78,7 +78,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -99,7 +99,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -124,7 +124,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -145,7 +145,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -173,7 +173,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -198,7 +198,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -222,7 +222,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -239,7 +239,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -261,7 +261,7 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -279,7 +279,7 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 					},
 				},
 			},
@@ -301,10 +301,10 @@ recipients:
 - type: age
   recipient: age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa
 - type: pgp
-  recipient: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA
+  recipient: 380024A2AC1D3EBC9402BEE66E38309B4DA30118
   publicKeySecretReference:
     name: gpg-publickeys
-    key: 6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg
+    key: 380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg
 `,
 			ExpectedConfig: UpdateKSopsSecrets{
 				ObjectMeta: metav1.ObjectMeta{
@@ -322,10 +322,10 @@ recipients:
 					},
 					{
 						Type:      "pgp",
-						Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+						Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 						PublicKeySecretReference: UpdateKSopsGPGPublicKeyReference{
 							Name: "gpg-publickeys",
-							Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+							Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
 						},
 					},
 				},
