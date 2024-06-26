@@ -269,19 +269,31 @@ func TestSecretFingerprint(t *testing.T) {
 			t.Errorf("Expect non-empty sealed fingerprint, got %s", fp)
 		}
 
-		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "secret", false, recipients...)
+		found, err := secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "secret", false, recipients...)
+		if !found {
+			t.Errorf("Expect secret found but got not found")
+		}
+
 		if err != nil {
 			t.Errorf("Expect no errors got %v", err)
 		}
 
-		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "c2VjcmV0", true, recipients...)
+		found, err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "c2VjcmV0", true, recipients...)
+		if !found {
+			t.Errorf("Expect secret found but got not found")
+		}
+
 		if err != nil {
 			t.Errorf("Expect no errors got %v", err)
 		}
 
-		err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "invalidsecret", false, recipients...)
-		if err == nil {
-			t.Errorf("Expect errors as invalid/changed secret provided but got %v", err)
+		found, err = secretFingerprintTryOpen(fp, "secret-name", "Opaque", "test", "invalidsecret", false, recipients...)
+		if found {
+			t.Errorf("Expect secret not found but got found")
+		}
+
+		if err != nil {
+			t.Errorf("Expect no errors got %v", err)
 		}
 	})
 
