@@ -31,7 +31,7 @@ build-sops:
 
   RUN git clone https://github.com/mozilla/sops.git \
     && cd sops \
-    && git checkout v3.7.2 \
+    && git checkout v3.8.1 \
     && sed -i'' 's/e.SetIndent(4)/e.SetIndent(2)/g' stores/yaml/store.go \
     && go mod download -x \
     && go build -o /sops ./cmd/sops
@@ -48,6 +48,8 @@ test:
   FROM +lint
   COPY +build-sops/sops /usr/local/bin/sops
 
+  RUN gpg --import example/F532DA10E563EE84440977A19D0470BDA6CDC457.gpg \
+    && gpg --import example/380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg
   RUN mkdir -p /testing/generated
   RUN go test -v ./...
 
@@ -61,13 +63,13 @@ download-tools:
   FROM debian:bullseye-slim
   ENV DEBIAN_FRONTEND=noninteractive
 
-  ARG KPT_VERSION="1.0.0-beta.13"
+  ARG KPT_VERSION="1.0.0-beta.51"
   ARG KPT_URL="https://github.com/GoogleContainerTools/kpt/releases/download/v${KPT_VERSION}/kpt_linux_amd64"
 
-  ARG KUSTOMIZE_VERSION="4.5.3"
+  ARG KUSTOMIZE_VERSION="5.4.2"
   ARG KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
 
-  ARG KSOPS_VERSION="3.0.2"
+  ARG KSOPS_VERSION="4.3.1"
   ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_x86_64.tar.gz"
 
   RUN apt update --yes \

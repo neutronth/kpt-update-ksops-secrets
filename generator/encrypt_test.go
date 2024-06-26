@@ -34,10 +34,10 @@ func uksConfigEncryptedSimple() *config.UpdateKSopsSecrets {
 			},
 			{
 				Type:      "pgp",
-				Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+				Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
 					Name: "gpg-publickeys",
-					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+					Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
 				},
 			},
 		},
@@ -175,10 +175,10 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 			},
 			{
 				Type:      "pgp",
-				Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+				Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
 					Name: "gpg-publickeys",
-					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+					Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
 				},
 			},
 		}
@@ -252,10 +252,10 @@ func TestSecretFingerprint(t *testing.T) {
 			},
 			{
 				Type:      "pgp",
-				Recipient: "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA",
+				Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
 				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
 					Name: "gpg-publickeys",
-					Key:  "6DBFDBA2ABED52FDA0E52B960125569F5334AAFA.gpg",
+					Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
 				},
 			},
 		}
