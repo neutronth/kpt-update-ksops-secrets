@@ -4,6 +4,7 @@
 package generator
 
 import (
+	"encoding/base64"
 	"fmt"
 	"reflect"
 	"strings"
@@ -225,6 +226,10 @@ func TestGenerateSecretEncryptedFiles(t *testing.T) {
 		}
 
 		for _, node := range nodes {
+			if node.GetKind() != "Secret" {
+				continue
+			}
+
 			data := node.GetDataMap()
 			for key, value := range data {
 				if !strings.HasPrefix(value, "ENC[AES256_GCM,data:") {
@@ -305,25 +310,46 @@ func TestSecretFingerprint(t *testing.T) {
 			t.Errorf("Expect non-empty sealed fingerprint, got %s", fp)
 		}
 	})
+}
 
-	t.Run("generate encrypted files with encrypted_fp added", func(t *testing.T) {
-		uksConfig := uksConfigEncryptedSimple()
-		gen := KSopsGenerator{}
-		secretRef := &mockSecretReference{}
-		nodes, results := gen.GenerateSecretEncryptedFiles([]*yaml.RNode{}, uksConfig, secretRef)
-		if results.ExitCode() != 0 {
-			t.Fatalf("unexpected error:\n %s", results.Error())
+func TestGenerateSecretFingerprintFiles(t *testing.T) {
+	t.Run("new fingerprint file node", func(t *testing.T) {
+		recipients := []config.UpdateKSopsRecipient{
+			{
+				Type:      "age",
+				Recipient: "age1x7pzjx4r05ar95pulf20knx0mkscaxa0zhtqr948wza3863fvees8tzaaa",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "F532DA10E563EE84440977A19D0470BDA6CDC457",
+			},
+			{
+				Type:      "pgp",
+				Recipient: "380024A2AC1D3EBC9402BEE66E38309B4DA30118",
+				PublicKeySecretReference: config.UpdateKSopsGPGPublicKeyReference{
+					Name: "gpg-publickeys",
+					Key:  "380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg",
+				},
+			},
 		}
 
-		for _, node := range nodes {
-			data, err := node.GetFieldValue("sops.encrypted_fp")
-			if err != nil {
-				t.Fatalf("lookup for sops.encrypted_fp error: %s", err.Error())
-			}
+		output, err := NewSecretFingerprintFileNode("test", "Opaque", "test", "secret", false, recipients...)
+		if err != nil {
+			t.Fatalf("Unexpected error: %v", err)
+		}
 
-			if len(data.(map[string]interface{})) == 0 {
-				t.Error("Expect encrypted_fp field exists, got none")
-			}
+		data := output.GetDataMap()
+		if len(data) != 1 {
+			t.Errorf("Expect only one key, got %d", len(data))
+		}
+
+		value, ok := data["test"]
+		if !ok {
+			t.Errorf("Expect key 'test' exists, got none")
+		}
+
+		if _, err := base64.StdEncoding.DecodeString(value); err != nil {
+			t.Errorf("Expect base64 encoded value, got %s", value)
 		}
 	})
 }

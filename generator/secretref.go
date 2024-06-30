@@ -54,7 +54,8 @@ func listSecretRefsFromConfig(uksConfig *config.UpdateKSopsSecrets) (list []stri
 
 func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.KubeObjects) {
 	for _, ko := range items {
-		if ko.GetAPIVersion() == "v1" && ko.GetKind() == "Secret" {
+		if (ko.GetAPIVersion() == "v1" && ko.GetKind() == "Secret") ||
+			(ko.GetAPIVersion() == "config.kubernetes.io/v1alpha1" && ko.GetKind() == "SecretFingerprint") {
 			if sliceContainsString(secretrefs, ko.GetName()) {
 				results = append(results, ko)
 			}
@@ -65,7 +66,7 @@ func getSecretRefNodes(items sdk.KubeObjects, secretrefs []string) (results sdk.
 }
 
 func encryptedSecretPredicate(expected bool) (f func(ko *sdk.KubeObject) bool) {
-	encryptedFilesCheck, err := regexp.Compile(`generated/secrets\..*\.enc\.yaml`)
+	encryptedFilesCheck, err := regexp.Compile(`generated/secrets\..*\.(enc|fp)\.yaml`)
 	if err != nil {
 		return f
 	}
@@ -132,11 +133,15 @@ func (sr *secretReference) lookup(name, key, dataField string) (val string, foun
 
 func (sr *secretReference) GetEncryptedFP(name, key string) string {
 	for _, ko := range sr.onlyEncryptedSecrets() {
+		if ko.GetKind() != "SecretFingerprint" {
+			continue
+		}
+
 		if name != "" && ko.GetName() != name {
 			continue
 		}
 
-		if data, found, err := ko.NestedStringMap("sops", "encrypted_fp"); err == nil && found {
+		if data, found, err := ko.NestedStringMap("data"); err == nil && found {
 			if val, ok := data[key]; ok {
 				return val
 			}

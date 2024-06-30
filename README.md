@@ -244,6 +244,7 @@ kept in local storage. Make sure to add the `.gitignore` for those files exclusi
 ```sh
 # .gitignore
 unencrypted-*
+secrets.*.fp.yaml
 ```
 
 #### GPG receive-keys requires network to work properly
@@ -260,8 +261,14 @@ $ kpt fn eval \
     --fn-config=update-ksops-secrets.yaml \
     --network
 ```
+
 #### Multi-platform images support
 
 The update-ksops-secrets supports in version described below:
-  * linux/amd64: >= 0.1
-  * linux/arm64: >= 0.12
+
+- linux/amd64: >= 0.1
+- linux/arm64: >= 0.12
+
+### Operation mode encrypt once support
+
+The update-ksops-secrets supports the operation mode `encrypt-once` that allows the user to encrypt the secret data once and keep the encrypted data in the repository. The SecretFingerprint will be generated and stored locally in the developer's environment and strictly must not commit to the repository. Please consult the `.gitignore` file to exclude the `secrets.*.fp.yaml` files.

@@ -376,7 +376,7 @@ data:
 	}
 }
 
-func TestSecretEncryptedFingerprint(t *testing.T) {
+func TestSecretFingerprintRef(t *testing.T) {
 	var secretlist []*yaml.RNode
 
 	secrets := []string{`
@@ -398,9 +398,16 @@ metadata:
 type: Opaque
 data:
   test: ENC[AES256_GCM,data:IUJvrFsCOzM=,iv:WGt9lQnO1VNbFkMN26EDacHUF0xQNvmDZfzPjzp6S8Q=,tag:Y56ZVMB9MIlxv1B/t2VPVQ==,type:str]
-sops:
-  encrypted_fp:
-    test: +OSdrYZqZjj3uQ68dhoHpKqAMCe8gMR4PyDtQ5sVdhViHh6rbhd4mwZeZ5uWFQjkY7S+ISp4wq9ioNmwATnI53EtuZajI5C19oUmCj8HEYobVw==
+`, `
+apiVersion: config.kubernetes.io/v1alpha1
+kind: SecretFingerprint
+metadata:
+  name: test-update-ksops-secrets
+  annotations:
+    internal.config.kubernetes.io/path: generated/secrets.test-update-ksops-secrets_test.fp.yaml
+type: Opaque
+data:
+  test: +OSdrYZqZjj3uQ68dhoHpKqAMCe8gMR4PyDtQ5sVdhViHh6rbhd4mwZeZ5uWFQjkY7S+ISp4wq9ioNmwATnI53EtuZajI5C19oUmCj8HEYobVw==
 `}
 
 	for _, ref := range secrets {

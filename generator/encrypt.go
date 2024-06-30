@@ -99,6 +99,31 @@ func (g *KSopsGenerator) GenerateSecretEncryptedFiles(nodes []*yaml.RNode,
 				key, filename),
 			Severity: framework.Info,
 		})
+
+		fpNode, err := NewSecretFingerprintFileNode(
+			uksConfig.GetName(),
+			uksConfig.GetType(),
+			key,
+			value,
+			b64encoded,
+			uksConfig.Recipients...,
+		)
+		if err != nil {
+			results = append(results, &framework.Result{
+				Message:  err.Error(),
+				Severity: framework.Error,
+			})
+		}
+
+		filename = fmt.Sprintf("%s.%s.fp.yaml", ResultFileEncryptedBase,
+			normalizedKeyName(key))
+		setFilename([]*yaml.RNode{fpNode}, filename)
+		newNodes = append(newNodes, fpNode)
+		results = append(results, &framework.Result{
+			Message: fmt.Sprintf("SecretFingerprint key '%s' => %s updated",
+				key, filename),
+			Severity: framework.Info,
+		})
 	}
 
 	return newNodes, results
@@ -152,26 +177,6 @@ data:
 
 	enc := yaml.MustParse(output)
 
-	// Add the encrypted fingerprint to support the encrypt once consideration
-	fingerprintCiphertext, err := secretFingerprintSeal(secretName, secretType, key, dataValue, true, recipients...)
-	if err != nil {
-		return nil, err
-	}
-
-	encryptedFPMap := yaml.NewMapRNode(&map[string]string{
-		key: fingerprintCiphertext,
-	})
-
-	rnType, err := enc.Pipe(yaml.Lookup("sops"))
-	if err != nil {
-		return nil, err
-	}
-
-	err = rnType.SetMapField(encryptedFPMap, "encrypted_fp")
-	if err != nil {
-		return nil, err
-	}
-
 	// The Sops render the encrypted YAML as a wide sequences indentation
 	if _, err := enc.Pipe(yaml.SetAnnotation(kioutil.SeqIndentAnnotation,
 		string(yaml.WideSequenceStyle))); err != nil {
@@ -179,6 +184,57 @@ data:
 	}
 
 	return enc, nil
+}
+
+func NewSecretFingerprintFileNode(secretName, secretType, key, value string,
+	b64encoded bool,
+	recipients ...config.UpdateKSopsRecipient,
+) (*yaml.RNode, error) {
+	n := yaml.MustParse(`
+apiVersion: config.kubernetes.io/v1alpha1
+kind: SecretFingerprint
+metadata:
+  name: secret
+type: Opaque
+data:
+`)
+
+	if err := n.SetName(secretName); err != nil {
+		return nil, err
+	}
+
+	if secretType != "" {
+		rnType, err := n.Pipe(yaml.Lookup("type"))
+		if err != nil {
+			return nil, err
+		}
+
+		rnType.YNode().Value = secretType
+	}
+
+	dataValue := value
+	if !b64encoded {
+		dataValue = encodeValue(value)
+	}
+
+	// Add the encrypted fingerprint to support the encrypt once consideration
+	fingerprintCiphertext, err := secretFingerprintSeal(secretName, secretType, key, dataValue, true, recipients...)
+	if err != nil {
+		return nil, err
+	}
+
+	data := map[string]string{
+		key: fingerprintCiphertext,
+	}
+	n.SetDataMap(data)
+
+	// The Sops render the encrypted YAML as a wide sequences indentation
+	if _, err := n.Pipe(yaml.SetAnnotation(kioutil.SeqIndentAnnotation,
+		string(yaml.WideSequenceStyle))); err != nil {
+		return nil, err
+	}
+
+	return n, nil
 }
 
 func selectGPGRecipientsWithPublicKey(gpgRecipients []config.UpdateKSopsRecipient) (selected []config.UpdateKSopsRecipient) {
