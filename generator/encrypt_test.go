@@ -295,6 +295,15 @@ func TestSecretFingerprint(t *testing.T) {
 		if err != nil {
 			t.Errorf("Expect no errors got %v", err)
 		}
+
+		fp, err = secretFingerprintSeal("secret-name", "Opaque", "test", "", false, recipients...)
+		if err != nil {
+			t.Errorf("Expect no errors got %v", err)
+		}
+
+		if fp == "" {
+			t.Errorf("Expect non-empty sealed fingerprint, got %s", fp)
+		}
 	})
 
 	t.Run("generate encrypted files with encrypted_fp added", func(t *testing.T) {

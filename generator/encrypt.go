@@ -301,6 +301,21 @@ func decodeValue(value string) (enc []byte, err error) {
 	return base64.StdEncoding.DecodeString(value)
 }
 
+func secretFingerprintIDKey(value, salt []byte) []byte {
+	return argon2.IDKey(value, salt, 1, 46*1024, 1, 32)
+}
+
+func secretFingerprintObfuscatedValue(value string, salt []byte) []byte {
+	sum := secretFingerprintIDKey([]byte(value), salt)
+	mod := int(sum[31]) % 16
+	if mod == 0 {
+		mod = 1
+	}
+
+	truncateIndex := 16 + (int(sum[0]) % mod)
+	return sum[:truncateIndex]
+}
+
 func secretFingerprintCryptoKey(secretName, secretType, key, value string, b64encoded bool,
 	salt []byte,
 	recipients ...config.UpdateKSopsRecipient,
@@ -312,17 +327,17 @@ func secretFingerprintCryptoKey(secretName, secretType, key, value string, b64en
 		secretValue = encodeValue(value)
 	}
 
-	buffer.WriteString(secretName)
-	buffer.WriteString(secretType)
-	buffer.WriteString(key)
-	buffer.WriteString(secretValue)
+	buffer.Write(secretFingerprintObfuscatedValue(secretName, salt))
+	buffer.Write(secretFingerprintObfuscatedValue(secretType, salt))
+	buffer.Write(secretFingerprintObfuscatedValue(key, salt))
+	buffer.Write(secretFingerprintObfuscatedValue(secretValue, salt))
 
 	for _, recipient := range recipients {
-		buffer.WriteString(recipient.Type)
-		buffer.WriteString(recipient.Recipient)
+		buffer.Write(secretFingerprintObfuscatedValue(recipient.Type, salt))
+		buffer.Write(secretFingerprintObfuscatedValue(recipient.Recipient, salt))
 	}
 
-	return argon2.IDKey(buffer.Bytes(), salt, 1, 46*1024, 1, 32)
+	return secretFingerprintIDKey(buffer.Bytes(), salt)
 }
 
 func secretFingerprintSeal(secretName, secretType, key, value string, b64encoded bool,
