@@ -159,7 +159,7 @@ metadata:
   name: update-ksops-secrets
 pipeline:
   mutators:
-    - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.12
+    - image: ghcr.io/neutronth/kpt-update-ksops-secrets:0.13
       configPath: update-ksops-secrets.yaml
 ```
 
@@ -173,7 +173,7 @@ Alternatively, invoke function directly without the `Kptfile`
 
 ```shell
 $ kpt fn eval \
-    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.12 \
+    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.13 \
     --fn-config=update-ksops-secrets.yaml
 ```
 
@@ -257,7 +257,7 @@ Hence, if the encrypted files recipients include the PGP/GPG fingerprints, the `
 
 ```shell
 $ kpt fn eval \
-    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.12 \
+    --image=ghcr.io/neutronth/kpt-update-ksops-secrets:0.13 \
     --fn-config=update-ksops-secrets.yaml \
     --network
 ```
@@ -269,6 +269,6 @@ The update-ksops-secrets supports in version described below:
 - linux/amd64: >= 0.1
 - linux/arm64: >= 0.12
 
-### Operation mode encrypt once support
+### Operation mode encrypt once support (>= 0.13)
 
 The update-ksops-secrets supports the operation mode `encrypt-once` that allows the user to encrypt the secret data once and keep the encrypted data in the repository. The SecretFingerprint will be generated and stored locally in the developer's environment and strictly must not commit to the repository. Please consult the `.gitignore` file to exclude the `secrets.*.fp.yaml` files.
