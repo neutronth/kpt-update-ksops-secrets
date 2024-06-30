@@ -31,7 +31,7 @@ build-sops:
 
   RUN git clone https://github.com/mozilla/sops.git \
     && cd sops \
-    && git checkout v3.8.1 \
+    && git checkout v3.9.0 \
     && sed -i'' 's/e.SetIndent(4)/e.SetIndent(2)/g' stores/yaml/store.go \
     && go mod download -x \
     && go build -o /sops ./cmd/sops
@@ -63,7 +63,7 @@ download-tools:
   FROM debian:bullseye-slim
   ENV DEBIAN_FRONTEND=noninteractive
 
-  ARG KPT_VERSION="1.0.0-beta.51"
+  ARG KPT_VERSION="1.0.0-beta.52"
   ARG KPT_URL="https://github.com/GoogleContainerTools/kpt/releases/download/v${KPT_VERSION}/kpt_linux_amd64"
 
   ARG KUSTOMIZE_VERSION="5.4.2"
