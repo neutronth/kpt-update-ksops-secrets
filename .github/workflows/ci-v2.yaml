@@ -21,7 +21,7 @@ jobs:
 
       - uses: dagger/dagger-for-github@8.0.0
         with:
-          call: integration-test
+          call: --docker-unix-sock=unix:///var/run/docker.sock integration-test
 
   
   integration-image-test:
@@ -34,4 +34,4 @@ jobs:
 
       - uses: dagger/dagger-for-github@8.0.0
         with:
-          call: integration-image-test
+          call: --docker-unix-sock=unix:///var/run/docker.sock integration-image-test
