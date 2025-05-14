@@ -33,7 +33,7 @@ build-sops:
     && cd sops \
     && git checkout v3.9.0 \
     && sed -i'' 's/e.SetIndent(4)/e.SetIndent(2)/g' stores/yaml/store.go \
-    && go mod download -x \
+    && go mod download \
     && go build -o /sops ./cmd/sops
 
   SAVE ARTIFACT /sops
