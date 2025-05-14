@@ -71,8 +71,14 @@ download-tools:
   ARG KUSTOMIZE_VERSION="5.4.2"
   ARG KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz"
 
+  IF [ $TARGETARCH = "amd64" ]
+    ARG KSOPS_ARCH="x86_64"
+  ELSE
+    ARG KSOPS_ARCH=$TARGETARCH
+  END
+
   ARG KSOPS_VERSION="4.3.1"
-  ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_${TARGETARCH}.tar.gz"
+  ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_${KSOPS_ARCH}.tar.gz"
 
   RUN apt update --yes \
     && apt install --yes curl
