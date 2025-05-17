@@ -9,7 +9,7 @@ source:
   WORKDIR /src
 
   COPY go.mod go.sum ./
-  RUN go mod download -x
+  RUN go mod download
 
   COPY . .
 
@@ -33,7 +33,7 @@ build-sops:
     && cd sops \
     && git checkout v3.9.0 \
     && sed -i'' 's/e.SetIndent(4)/e.SetIndent(2)/g' stores/yaml/store.go \
-    && go mod download -x \
+    && go mod download \
     && go build -o /sops ./cmd/sops
 
   SAVE ARTIFACT /sops
@@ -63,14 +63,22 @@ download-tools:
   FROM debian:bullseye-slim
   ENV DEBIAN_FRONTEND=noninteractive
 
+  ARG TARGETARCH
+
   ARG KPT_VERSION="1.0.0-beta.52"
-  ARG KPT_URL="https://github.com/GoogleContainerTools/kpt/releases/download/v${KPT_VERSION}/kpt_linux_amd64"
+  ARG KPT_URL="https://github.com/GoogleContainerTools/kpt/releases/download/v${KPT_VERSION}/kpt_linux_${TARGETARCH}"
 
   ARG KUSTOMIZE_VERSION="5.4.2"
-  ARG KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz"
+  ARG KUSTOMIZE_URL="https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_${TARGETARCH}.tar.gz"
+
+  IF [ $TARGETARCH = "amd64" ]
+    ARG KSOPS_ARCH="x86_64"
+  ELSE
+    ARG KSOPS_ARCH=$TARGETARCH
+  END
 
   ARG KSOPS_VERSION="4.3.1"
-  ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_x86_64.tar.gz"
+  ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_${KSOPS_ARCH}.tar.gz"
 
   RUN apt update --yes \
     && apt install --yes curl

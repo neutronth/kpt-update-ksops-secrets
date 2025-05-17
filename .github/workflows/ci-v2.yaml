@@ -1,0 +1,35 @@
+name: Continuous Integration
+
+on:
+  push:
+    branches:
+      - "*"
+  pull_request:
+    branches:
+      - "*"
+
+jobs:
+  integration-test:
+    name: Integration Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: dagger/dagger-for-github@8.0.0
+        with:
+          call: --docker-unix-sock=unix:///var/run/docker.sock integration-test
+
+  
+  integration-image-test:
+    name: Integration Image Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      - uses: dagger/dagger-for-github@8.0.0
+        with:
+          call: --docker-unix-sock=unix:///var/run/docker.sock integration-image-test
