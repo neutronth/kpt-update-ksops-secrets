@@ -28,6 +28,7 @@ func (s *sops) Encrypt(input string, recipients ...config.UpdateKSopsRecipient) 
 	cmdOpts := []string{
 		"--input-type=yaml",
 		"--output-type=yaml",
+		"--indent=2",
 		"--encrypted-regex=^(data|stringData)$",
 		"--encrypt",
 	}
