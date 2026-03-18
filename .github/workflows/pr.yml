@@ -3,16 +3,16 @@ name: Pull Request
 on:
   pull_request:
     branches:
-      - "*"
+    - "*"
 
 jobs:
   pr:
     name: Pull Request
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: recursive
+    - uses: actions/checkout@v6
+      with:
+        submodules: recursive
 
-      - name: dependency review
-        uses: actions/dependency-review-action@v1
+    - name: dependency review
+      uses: actions/dependency-review-action@v4.9.0
