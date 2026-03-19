@@ -46,7 +46,7 @@ lint:
 
 test:
   FROM +lint
-  COPY +build-sops/sops /usr/local/bin/sops
+  COPY +download-tools/sops /usr/local/bin/sops
 
   RUN gpg --import example/F532DA10E563EE84440977A19D0470BDA6CDC457.gpg \
     && gpg --import example/380024A2AC1D3EBC9402BEE66E38309B4DA30118.gpg
@@ -77,8 +77,11 @@ download-tools:
     ARG KSOPS_ARCH=$TARGETARCH
   END
 
-  ARG KSOPS_VERSION="4.3.1"
+  ARG KSOPS_VERSION="4.4.0"
   ARG KSOPS_URL="https://github.com/viaduct-ai/kustomize-sops/releases/download/v${KSOPS_VERSION}/ksops_${KSOPS_VERSION}_Linux_${KSOPS_ARCH}.tar.gz"
+
+  ARG SOPS_VERSION="3.12.1"
+  ARG SOPS_URL="https://github.com/getsops/sops/releases/download/v${SOPS_VERSION}/sops-v${SOPS_VERSION}.linux.${TARGETARCH}"
 
   RUN apt update --yes \
     && apt install --yes curl
@@ -92,9 +95,13 @@ download-tools:
   RUN curl --location "$KSOPS_URL" -o - | tar xzf - ksops \
     && chmod +x ksops
 
+  RUN curl --location "$SOPS_URL" -o sops \
+    && chmod +x sops
+
   SAVE ARTIFACT kpt
   SAVE ARTIFACT kustomize
   SAVE ARTIFACT ksops
+  SAVE ARTIFACT sops
 
 image:
   ARG IMAGE_TAG="${IMAGE_TAG}"
@@ -102,7 +109,7 @@ image:
   FROM debian:bullseye-slim
 
   COPY +build/kpt-update-ksops-secrets /usr/local/bin/kpt-update-ksops-secrets
-  COPY +build-sops/sops /usr/local/bin/sops
+  COPY +download-tools/sops /usr/local/bin/sops
 
   ARG DEBIAN_FRONTEND="noninteractive"
   RUN apt update --yes \
