@@ -1,4 +1,4 @@
-VERSION 0.7
+VERSION 0.8
 
 ARG --global IMAGE_TAG="dev"
 
@@ -12,6 +12,31 @@ source:
   RUN go mod download
 
   COPY . .
+
+build-sops:
+  # The custom SOPS is required due to an incompatibility YAML indent spaces
+  # which the Kpt/Kustomize is 2 spaces but the SOPS is 4 spaces.
+  # The 2 spaces formatting of Kpt/Kustomize makes the
+  # SOPS MAC (Message Authentication Code) invalid and error on decryption.
+  # The custom SOPS is required during secrets encryption in Kpt pipeline only,
+  # the generated encrypted files still compatible with the upstream binary.
+  FROM golang:1.22-bullseye
+  ENV DEBIAN_FRONTEND="noninteractive"
+  ENV CGO_ENABLED=0
+
+  WORKDIR /src
+
+  RUN apt update --yes \
+    && apt install --yes git
+
+  RUN git clone https://github.com/mozilla/sops.git \
+    && cd sops \
+    && git checkout v3.9.0 \
+    && sed -i'' 's/e.SetIndent(4)/e.SetIndent(2)/g' stores/yaml/store.go \
+    && go mod download \
+    && go build -o /sops ./cmd/sops
+
+  SAVE ARTIFACT /sops
 
 lint:
   FROM +source
@@ -36,7 +61,7 @@ build:
 
 download-tools:
   FROM debian:bullseye-slim
-  ENV DEBIAN_FRONTEND=noninteractive
+  ENV DEBIAN_FRONTEND="noninteractive"
 
   ARG TARGETARCH
 
@@ -86,7 +111,7 @@ image:
   COPY +build/kpt-update-ksops-secrets /usr/local/bin/kpt-update-ksops-secrets
   COPY +download-tools/sops /usr/local/bin/sops
 
-  ARG DEBIAN_FRONTEND=noninteractive
+  ARG DEBIAN_FRONTEND="noninteractive"
   RUN apt update --yes \
     && apt install --yes \
       ca-certificates \
@@ -113,7 +138,7 @@ integration-base:
   ARG BASE_IMAGE
   FROM ${BASE_IMAGE}
   WORKDIR /testing
-  ENV DEBIAN_FRONTEND=noninteractive
+  ENV DEBIAN_FRONTEND="noninteractive"
 
   RUN apt update --yes \
     && apt install --yes \

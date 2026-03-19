@@ -1,7 +1,8 @@
 {
   "name": "kpt-update-ksops-secrets",
-  "engineVersion": "v0.18.6",
+  "engineVersion": "v0.20.1",
   "sdk": {
     "source": "github.com/wingyplus/dagger-earthly-sdk"
-  }
+  },
+  "disableDefaultFunctionCaching": true
 }
